@@ -5,11 +5,6 @@ import {
   navigateToProfileSettings,
   navigateToAccountPreferences,
   openKeyboardShortcuts,
-  openChangelog,
-  openDocumentation,
-  openAPIDocumentation,
-  openBugReportUrl,
-  openFeedbackUrl,
   logout,
 } from "~/actions/definitions/navigation";
 import { changeTheme } from "~/actions/definitions/settings";
@@ -27,12 +22,6 @@ const AccountMenu: React.FC = ({ children }: Props) => {
   const actions = React.useMemo(
     () => [
       openKeyboardShortcuts,
-      openDocumentation,
-      openAPIDocumentation,
-      ActionSeparator,
-      openChangelog,
-      openFeedbackUrl,
-      openBugReportUrl,
       changeTheme,
       navigateToProfileSettings,
       navigateToAccountPreferences,

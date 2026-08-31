@@ -46,6 +46,11 @@ function Security() {
           label: t("Viewer"),
           value: "viewer",
         },
+        {
+          type: "item",
+          label: t("Guest"),
+          value: "guest",
+        },
       ] satisfies Option[],
     [t]
   );
@@ -194,6 +199,39 @@ function Security() {
     [saveData, team.preferences]
   );
 
+  const handleMembersCanCreateApiKeyChange = React.useCallback(
+    async (checked: boolean) => {
+      const preferences = {
+        ...team.preferences,
+        [TeamPreference.MembersCanCreateApiKey]: checked,
+      };
+      await saveData({ preferences });
+    },
+    [saveData, team.preferences]
+  );
+
+  const handlePreventDocumentEmbeddingChange = React.useCallback(
+    async (checked: boolean) => {
+      const preferences = {
+        ...team.preferences,
+        [TeamPreference.PreventDocumentEmbedding]: checked,
+      };
+      await saveData({ preferences });
+    },
+    [saveData, team.preferences]
+  );
+
+  const handlePreviewsInEmailsChange = React.useCallback(
+    async (checked: boolean) => {
+      const preferences = {
+        ...team.preferences,
+        [TeamPreference.PreviewsInEmails]: checked,
+      };
+      await saveData({ preferences });
+    },
+    [saveData, team.preferences]
+  );
+
   const handleCommentingChange = React.useCallback(
     async (commenting: string) => {
       const preferences = {
@@ -325,6 +363,47 @@ function Security() {
           id="sharing"
           checked={data.sharing}
           onChange={handleSharingChange}
+        />
+      </SettingRow>
+      <SettingRow
+        label={t("Public document embedding")}
+        name={TeamPreference.PreventDocumentEmbedding}
+        description={t(
+          "When enabled, publicly shared documents can be embedded in third-party websites"
+        )}
+      >
+        <Switch
+          id={TeamPreference.PreventDocumentEmbedding}
+          checked={!team.getPreference(TeamPreference.PreventDocumentEmbedding)}
+          onChange={(checked: boolean) =>
+            handlePreventDocumentEmbeddingChange(!checked)
+          }
+        />
+      </SettingRow>
+      <SettingRow
+        label={t("API access")}
+        name={TeamPreference.MembersCanCreateApiKey}
+        description={t(
+          "Allow members to create API keys for programmatic access"
+        )}
+      >
+        <Switch
+          id={TeamPreference.MembersCanCreateApiKey}
+          checked={team.getPreference(TeamPreference.MembersCanCreateApiKey)}
+          onChange={handleMembersCanCreateApiKeyChange}
+        />
+      </SettingRow>
+      <SettingRow
+        label={t("Include previews in emails")}
+        name={TeamPreference.PreviewsInEmails}
+        description={t(
+          "When enabled, email notifications will include content previews"
+        )}
+      >
+        <Switch
+          id={TeamPreference.PreviewsInEmails}
+          checked={team.getPreference(TeamPreference.PreviewsInEmails)}
+          onChange={handlePreviewsInEmailsChange}
         />
       </SettingRow>
       <SettingRow

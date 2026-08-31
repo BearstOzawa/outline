@@ -13,7 +13,9 @@ import type Revision from "~/models/Revision";
 import { ActionSeparator } from "~/actions";
 import {
   copyLinkToRevisionActionFactory,
+  deleteRevision,
   exportRevisionActionFactory,
+  renameRevision,
   restoreRevision,
 } from "~/actions/definitions/revisions";
 import { Avatar, AvatarSize } from "~/components/Avatar";
@@ -49,9 +51,12 @@ const RevisionListItem = ({ item, document, ...rest }: Props) => {
   const actions = useMemo(
     () => [
       restoreRevision,
+      renameRevision,
       ActionSeparator,
       copyLinkToRevisionActionFactory(item.id),
       exportRevisionActionFactory(item.id),
+      ActionSeparator,
+      deleteRevision,
     ],
     [item.id]
   );
@@ -125,16 +130,20 @@ const RevisionListItem = ({ item, document, ...rest }: Props) => {
           exact
           to={to}
           title={
-            <Time
-              dateTime={item.createdAt}
-              format={{
-                en_US: "MMM do, h:mm a",
-                fr_FR: "'Le 'd MMMM 'à' H:mm",
-              }}
-              relative={false}
-              addSuffix
-              onClick={handleTimeClick}
-            />
+            item.name ? (
+              item.name
+            ) : (
+              <Time
+                dateTime={item.createdAt}
+                format={{
+                  en_US: "MMM do, h:mm a",
+                  fr_FR: "'Le 'd MMMM 'à' H:mm",
+                }}
+                relative={false}
+                addSuffix
+                onClick={handleTimeClick}
+              />
+            )
           }
           image={
             item.collaborators ? (
@@ -143,7 +152,26 @@ const RevisionListItem = ({ item, document, ...rest }: Props) => {
               <Avatar model={item.createdBy} size={AvatarSize.Large} />
             )
           }
-          subtitle={<Meta>{meta}</Meta>}
+          subtitle={
+            <Meta>
+              {item.name ? (
+                <>
+                  <Time
+                    dateTime={item.createdAt}
+                    format={{
+                      en_US: "MMM do, h:mm a",
+                      fr_FR: "'Le 'd MMMM 'à' H:mm",
+                    }}
+                    relative={false}
+                    addSuffix
+                    onClick={handleTimeClick}
+                  />
+                  {" · "}
+                </>
+              ) : null}
+              {meta}
+            </Meta>
+          }
           actions={
             <StyledEventBoundary>
               <RevisionMenu document={document} revisionId={item.id} />

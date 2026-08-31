@@ -94,9 +94,12 @@ export const changeUserRole = createActionWithChildren({
       const can = context.stores.policies.abilities(user.id);
       return can.demote || can.promote;
     }),
-  children: [UserRole.Admin, UserRole.Member, UserRole.Viewer].map((role) =>
-    updateUserRoleActionFactory(role)
-  ),
+  children: [
+    UserRole.Admin,
+    UserRole.Member,
+    UserRole.Viewer,
+    UserRole.Guest,
+  ].map((role) => updateUserRoleActionFactory(role)),
 });
 
 export const changeUserAvatar = dialogActionFactory({

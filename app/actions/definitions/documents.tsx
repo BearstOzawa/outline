@@ -13,6 +13,7 @@ import {
   ImportIcon,
   PinIcon,
   SearchIcon,
+  SparklesIcon,
   UnsubscribeIcon,
   SubscribeIcon,
   MoveIcon,
@@ -39,7 +40,6 @@ import {
   SplitIcon,
   ExportIcon,
   CodeIcon,
-  PDFIcon,
 } from "outline-icons";
 import { toast } from "sonner";
 import Icon from "@shared/components/Icon";
@@ -48,6 +48,7 @@ import {
   DocumentPreference,
   ExportContentType,
   HeadingPrefixStyle,
+  TeamPreference,
   UserPreference,
 } from "@shared/types";
 import { isMobile } from "@shared/utils/browser";
@@ -55,6 +56,7 @@ import { Week } from "@shared/utils/time";
 import type UserMembership from "~/models/UserMembership";
 import Document from "~/models/Document";
 import { client } from "~/utils/ApiClient";
+import { printPage } from "~/utils/print";
 import DocumentDelete from "~/scenes/DocumentDelete";
 import { ProsemirrorHelper } from "~/models/helpers/ProsemirrorHelper";
 import DocumentPermanentDelete from "~/scenes/DocumentPermanentDelete";
@@ -112,7 +114,7 @@ import type {
   ActionSeparator as TActionSeparator,
 } from "~/types";
 import lazyWithRetry from "~/utils/lazyWithRetry";
-import env from "~/env";
+
 import { isMac, isWindows } from "@shared/utils/browser";
 import isCloudHosted from "~/utils/isCloudHosted";
 import DocumentMove from "~/components/DocumentExplorer/DocumentMove";
@@ -783,31 +785,6 @@ export const downloadDocumentAsTextBundle = createAction({
   },
 });
 
-export const downloadDocumentAsPDF = createAction({
-  name: ({ t, isMenu }) => (isMenu ? t("PDF") : t("Download as PDF")),
-  analyticsName: "Download document as PDF",
-  section: ActiveDocumentSection,
-  keywords: "pdf export download",
-  icon: <PDFIcon />,
-  iconInContextMenu: false,
-  visible: ({ activeDocumentId, stores }) =>
-    !!(
-      activeDocumentId &&
-      stores.policies.abilities(activeDocumentId).download &&
-      env.PDF_EXPORT_ENABLED
-    ),
-  perform: async ({ activeDocumentId, stores }) => {
-    if (!activeDocumentId) {
-      return;
-    }
-
-    const document = stores.documents.get(activeDocumentId);
-    await document?.download({
-      contentType: ExportContentType.Pdf,
-    });
-  },
-});
-
 export const copyDocumentAsMarkdown = createAction({
   name: ({ t }) => t("Copy as Markdown"),
   section: ActiveDocumentSection,
@@ -1146,6 +1123,38 @@ export const searchInDocument = createInternalLinkAction({
   },
 });
 
+export const askDocumentAI = createAction({
+  name: ({ t }) => t("Ask AI"),
+  analyticsName: "Ask AI",
+  section: ActiveDocumentSection,
+  icon: <SparklesIcon />,
+  visible: ({ stores, activeDocumentId }) => {
+    if (!activeDocumentId) {
+      return false;
+    }
+    const document = stores.documents.get(activeDocumentId);
+    return (
+      !!document?.isActive &&
+      !!stores.auth.team?.getPreference(TeamPreference.AIAnswers)
+    );
+  },
+  perform: async ({ activeDocumentId, stores, t }) => {
+    const document = activeDocumentId
+      ? stores.documents.get(activeDocumentId)
+      : undefined;
+    if (!document) {
+      return;
+    }
+    const { default: AskAI } = await import("../../../plugins/ee/client/AskAI");
+    stores.dialogs.openModal({
+      title: t("Ask AI"),
+      width: "640px",
+      height: "min(80vh, 720px)",
+      content: <AskAI document={document} />,
+    });
+  },
+});
+
 export const printDocument = createAction({
   name: ({ t, isMenu }) => (isMenu ? t("Print") : t("Print document")),
   analyticsName: "Print document",
@@ -1154,7 +1163,7 @@ export const printDocument = createAction({
   iconInContextMenu: false,
   visible: ({ activeDocumentId }) => !!(activeDocumentId && window.print),
   perform: () => {
-    setTimeout(window.print, 0);
+    printPage();
   },
 });
 
@@ -1163,12 +1172,11 @@ export const exportDocument = createActionWithChildren({
   analyticsName: "Export document",
   section: ActiveDocumentSection,
   icon: <ExportIcon />,
-  keywords: "download print pdf markdown html",
+  keywords: "download print markdown html",
   children: [
     downloadDocumentAsMarkdown,
     downloadDocumentAsHTML,
     downloadDocumentAsTextBundle,
-    downloadDocumentAsPDF,
     ActionSeparator,
     printDocument,
   ],
@@ -1365,6 +1373,19 @@ export const searchDocumentsForQueryActionFactory = (query: string) =>
     icon: <SearchIcon />,
     to: searchPath({ query }),
     visible: ({ location }) => location.pathname !== searchPath(),
+  });
+
+export const askAIForQueryActionFactory = (query: string) =>
+  createInternalLinkAction({
+    id: "ask-ai",
+    name: ({ t }) => t(`Ask AI "{{question}}"`, { question: query }),
+    analyticsName: "Ask AI",
+    section: SearchResultsSection,
+    priority: 0,
+    icon: <SparklesIcon />,
+    to: searchPath({ query }),
+    visible: ({ stores }) =>
+      !!stores.auth.team?.getPreference(TeamPreference.AIAnswers),
   });
 
 export const moveDocumentToCollection = createAction({
@@ -1937,7 +1958,6 @@ export const rootDocumentActions = [
   downloadDocumentAsMarkdown,
   downloadDocumentAsHTML,
   downloadDocumentAsTextBundle,
-  downloadDocumentAsPDF,
   copyDocumentLink,
   copyDocumentShareLink,
   copyDocumentAsMarkdown,
@@ -1949,6 +1969,7 @@ export const rootDocumentActions = [
   subscribeDocument,
   unsubscribeDocument,
   searchInDocument,
+  askDocumentAI,
   duplicateDocument,
   leaveDocument,
   moveDocumentToCollection,

@@ -90,19 +90,29 @@ function useImportsConfig() {
     ];
 
     PluginManager.getHooks(Hook.Imports).forEach((plugin) => {
-      items.push({ ...plugin.value });
+      items.push({
+        ...plugin.value,
+        title: t(plugin.value.title),
+        subtitle: t(plugin.value.subtitle),
+      });
     });
 
-    items.push({
-      title: "Confluence",
-      subtitle: t("Import pages from a Confluence instance"),
-      icon: <img src={cdnPath("/images/confluence.png")} alt="" width={28} />,
-      action: (
-        <Button type="submit" disabled neutral>
-          {t("Enterprise")}
-        </Button>
-      ),
-    });
+    const hasConfluencePlugin = PluginManager.getHooks(Hook.Imports).some(
+      (plugin) =>
+        plugin.id === "confluence" || plugin.value.title === "Confluence"
+    );
+    if (!hasConfluencePlugin) {
+      items.push({
+        title: "Confluence",
+        subtitle: t("Import pages from a Confluence instance"),
+        icon: <img src={cdnPath("/images/confluence.png")} alt="" width={28} />,
+        action: (
+          <Button type="submit" disabled neutral>
+            {t("Enterprise")}
+          </Button>
+        ),
+      });
+    }
 
     return items;
   }, [t, dialogs, appName]);

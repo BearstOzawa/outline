@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import { InternetIcon } from "outline-icons";
-import { useTranslation, Trans } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import type OAuthClient from "~/models/oauth/OAuthClient";
 import { Action } from "~/components/Actions";
 import Button from "~/components/Button";
@@ -40,18 +40,9 @@ function Applications() {
     >
       <Heading>{t("Applications")}</Heading>
       <Text as="p" type="secondary">
-        <Trans
-          defaults="Applications allow you to build internal or public integrations with Outline and provide secure access via OAuth. For more details see the <em>developer documentation</em>."
-          components={{
-            em: (
-              <a
-                href="https://www.getoutline.com/developers"
-                target="_blank"
-                rel="noreferrer"
-              />
-            ),
-          }}
-        />
+        {t(
+          "Applications allow you to build internal or public integrations with Outline and provide secure access via OAuth."
+        )}
       </Text>
       <PaginatedList<OAuthClient>
         fetch={oauthClients.fetchPage}

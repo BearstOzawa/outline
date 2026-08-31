@@ -19,6 +19,23 @@ export const TeamsUpdateSchema = BaseSchema.extend({
     avatarUrl: z.string().nullish(),
     /** The subdomain to access the team */
     subdomain: z.string().nullish(),
+    /** Custom hostname for the workspace, e.g. wiki.example.com */
+    domain: z
+      .string()
+      .nullish()
+      .transform((val) => {
+        if (val == null) {
+          return null;
+        }
+        let hostname = val.trim().toLowerCase();
+        if (!hostname) {
+          return null;
+        }
+        hostname = hostname.replace(/^https?:\/\//, "");
+        hostname = hostname.split("/")[0] ?? hostname;
+        hostname = hostname.split(":")[0] ?? hostname;
+        return hostname || null;
+      }),
     /** Whether public sharing is enabled */
     sharing: z.boolean().optional(),
     /** Whether signin with email is enabled */
@@ -77,6 +94,12 @@ export const TeamsUpdateSchema = BaseSchema.extend({
         [TeamPreference.MCP]: z.boolean(),
         /** List of disabled embed provider titles. */
         [TeamPreference.DisabledEmbeds]: z.array(z.string()),
+        /** Whether search can return AI-generated answers from workspace documents. */
+        [TeamPreference.AIAnswers]: z.boolean(),
+        /** Whether AI answers may retrieve related documents with embeddings. */
+        [TeamPreference.AIVectorSearch]: z.boolean(),
+        /** Whether AI answers may rerank retrieved passages. */
+        [TeamPreference.AIRerank]: z.boolean(),
       })
       .partial()
       .optional(),

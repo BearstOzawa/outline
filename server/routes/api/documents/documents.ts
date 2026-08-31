@@ -38,7 +38,6 @@ import {
   InvalidRequestError,
   AuthenticationError,
   ValidationError,
-  IncorrectEditionError,
   NotFoundError,
 } from "@server/errors";
 import auth from "@server/middlewares/authentication";
@@ -105,6 +104,7 @@ import { streamZipResponse } from "@server/utils/koa";
 import { QueryHelper } from "@server/storage/QueryHelper";
 import { getTeamFromContext } from "@server/utils/passport";
 import pagination, { paginateQuery } from "../middlewares/pagination";
+import { registerDocumentAIRoutes } from "../../../../plugins/ee/server/api/ai";
 import * as T from "./schema";
 import {
   loadPublicShare,
@@ -959,14 +959,10 @@ router.post(
         ? FileOperationFormat.MarkdownZip
         : accept?.includes(ExportContentType.TextBundle)
           ? FileOperationFormat.TextBundleZip
-          : accept?.includes("application/pdf")
-            ? FileOperationFormat.PDF
-            : null;
+          : null;
 
-    if (format === FileOperationFormat.PDF) {
-      throw IncorrectEditionError(
-        "PDF export is not available in the community edition"
-      );
+    if (accept?.includes("application/pdf")) {
+      throw InvalidRequestError("PDF export is not available");
     }
 
     if (includeChildDocuments) {
@@ -2305,5 +2301,7 @@ function getAPIVersion(ctx: APIContext) {
       0
   );
 }
+
+registerDocumentAIRoutes(router);
 
 export default router;

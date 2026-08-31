@@ -21,6 +21,7 @@ import {
   TableSplitCellsIcon,
   PaletteIcon,
   CollapseIcon,
+  SparklesIcon,
 } from "outline-icons";
 import { v4 as uuidv4 } from "uuid";
 import CellBackgroundColorPicker from "../components/CellBackgroundColorPicker";
@@ -52,6 +53,7 @@ import type { CellSelection } from "prosemirror-tables";
 import TableCell from "@shared/editor/nodes/TableCell";
 import Highlight from "@shared/editor/marks/Highlight";
 import { DottedCircleIcon } from "~/components/Icons/DottedCircleIcon";
+import { isAIWritingEnabled } from "../../../plugins/ee/client/runAIWriting";
 
 /**
  * Returns menu items for the default formatting selection toolbar.
@@ -489,6 +491,35 @@ export default function formattingMenuItems(ctx: SelectionContext): MenuItem[] {
         { resolved: false },
         { exact: true }
       ),
+    },
+    {
+      name: "separator",
+      visible: isAIWritingEnabled() && !isEmpty && !isInCodeBlock,
+    },
+    {
+      group: MenuItemGroup.inline,
+      tooltip: t("Ask AI"),
+      icon: <SparklesIcon />,
+      visible: isAIWritingEnabled() && !isEmpty && !isInCodeBlock,
+      children: (): MenuItem[] => [
+        {
+          name: "aiImprove",
+          label: t("Improve writing"),
+          icon: <SparklesIcon />,
+        },
+        {
+          name: "aiShorter",
+          label: t("Make shorter"),
+        },
+        {
+          name: "aiLonger",
+          label: t("Make longer"),
+        },
+        {
+          name: "aiFix",
+          label: t("Fix spelling and grammar"),
+        },
+      ],
     },
     {
       name: "separator",

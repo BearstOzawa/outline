@@ -28,6 +28,7 @@ import { useLocationSidebarContext } from "~/hooks/useLocationSidebarContext";
 import usePolicy from "~/hooks/usePolicy";
 import useQuery from "~/hooks/useQuery";
 import useStores from "~/hooks/useStores";
+import { Hook, PluginManager } from "~/utils/PluginManager";
 import {
   documentHistoryPath,
   documentPath,
@@ -255,6 +256,13 @@ function DocumentEditor(props: Props, ref: React.ForwardedRef<SharedEditor>) {
           rtl={direction === "rtl"}
         />
       ) : null}
+      {!rest.template &&
+        PluginManager.getHooks(Hook.DocumentMeta).map((plugin) => {
+          const Component = plugin.value.component.Component;
+          return (
+            <Component key={plugin.id} document={document as Document} />
+          );
+        })}
       <EditorComponent
         ref={mergeRefs([ref, editorRef, handleRefChanged])}
         lang={getLangFor(document.language)}

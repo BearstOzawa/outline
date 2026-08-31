@@ -61,10 +61,17 @@ export default function apiErrorHandler() {
         );
       }
 
+      const status =
+        typeof err === "object" && err && "status" in err
+          ? Number((err as { status?: number }).status)
+          : undefined;
       if (
-        (err instanceof Error && "code" in err && err.code === "ENOENT") ||
-        err instanceof SequelizeEmptyResultError ||
-        (err instanceof Error && /Not found/i.test(err.message))
+        status !== 400 &&
+        status !== 401 &&
+        status !== 403 &&
+        ((err instanceof Error && "code" in err && err.code === "ENOENT") ||
+          err instanceof SequelizeEmptyResultError ||
+          (err instanceof Error && /Not found/i.test(err.message)))
       ) {
         transformedErr = NotFoundError();
       }

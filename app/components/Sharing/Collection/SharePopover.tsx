@@ -5,7 +5,7 @@ import { BackIcon } from "outline-icons";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { CollectionPermission } from "@shared/types";
+import { CollectionPermission, UserRole } from "@shared/types";
 import type Collection from "~/models/Collection";
 import Group from "~/models/Group";
 import User from "~/models/User";
@@ -14,7 +14,6 @@ import NudeButton from "~/components/NudeButton";
 import { createAction } from "~/actions";
 import { UserSection } from "~/actions/sections";
 import useBoolean from "~/hooks/useBoolean";
-import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useKeyDown from "~/hooks/useKeyDown";
 import usePolicy from "~/hooks/usePolicy";
 import usePrevious from "~/hooks/usePrevious";
@@ -46,7 +45,6 @@ function SharePopover({
   onRequestClose,
   loading: externalLoading,
 }: Props) {
-  const team = useCurrentTeam();
   const { groupMemberships, users, groups, memberships, shares } = useStores();
   const { preload, loading: internalLoading } = useShareDataLoader({
     collection,
@@ -207,7 +205,7 @@ function SharePopover({
                   {
                     email: idOrEmail,
                     name: idOrEmail,
-                    role: team.defaultUserRole,
+                    role: UserRole.Guest,
                   },
                 ]);
                 user = response[0];
@@ -295,7 +293,6 @@ function SharePopover({
       pendingIds,
       permission,
       t,
-      team.defaultUserRole,
       users,
     ]
   );

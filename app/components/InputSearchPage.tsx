@@ -7,7 +7,9 @@ import styled, { useTheme } from "styled-components";
 import breakpoint from "styled-components-breakpoint";
 import { s } from "@shared/styles";
 import { metaDisplay, shortcutSeparator } from "@shared/utils/keyboard";
+import { TeamPreference } from "@shared/types";
 import useBoolean from "~/hooks/useBoolean";
+import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useKeyDown from "~/hooks/useKeyDown";
 import useMobile from "~/hooks/useMobile";
 import { searchPath } from "~/utils/routeHelpers";
@@ -45,7 +47,9 @@ function InputSearchPage({
   const theme = useTheme();
   const history = useHistory();
   const { t } = useTranslation();
+  const team = useCurrentTeam({ rejectOnEmpty: false });
   const isMobile = useMobile();
+  const aiAnswersEnabled = !!team?.getPreference(TeamPreference.AIAnswers);
   const [isFocused, setFocused, setUnfocused] = useBoolean(false);
 
   useKeyDown(
@@ -91,7 +95,10 @@ function InputSearchPage({
     <InputMaxWidth
       ref={inputRef}
       type="search"
-      placeholder={placeholder || `${t("Search")}…`}
+      placeholder={
+        placeholder ||
+        `${aiAnswersEnabled ? t("Search or ask a question") : t("Search")}…`
+      }
       value={value}
       onChange={onChange}
       onKeyDown={handleKeyDown}

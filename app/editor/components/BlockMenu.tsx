@@ -1,4 +1,4 @@
-import { DocumentIcon, ShapesIcon } from "outline-icons";
+import { DocumentIcon, ShapesIcon, SparklesIcon } from "outline-icons";
 import { cloneDeep } from "es-toolkit/compat";
 import { observer } from "mobx-react";
 import { useCallback, useMemo } from "react";
@@ -9,6 +9,7 @@ import { ProsemirrorHelper } from "@shared/utils/ProsemirrorHelper";
 import { TextHelper } from "@shared/utils/TextHelper";
 import useCurrentUser from "~/hooks/useCurrentUser";
 import useStores from "~/hooks/useStores";
+import { isAIWritingEnabled } from "../../../plugins/ee/client/runAIWriting";
 import getMenuItems from "../menus/block";
 import { useEditor } from "./EditorContext";
 import type { Props as SuggestionsMenuProps } from "./SuggestionsMenu";
@@ -113,12 +114,31 @@ function BlockMenu(props: Props) {
 
   const items = useMemo(() => {
     const baseItems = getMenuItems(t, elementRef);
+    const extras: MenuItem[] = [];
 
-    if (!templateMenuItem) {
-      return baseItems;
+    if (isAIWritingEnabled()) {
+      extras.push(
+        { name: "separator" },
+        {
+          name: "aiContinue",
+          title: t("Continue writing"),
+          icon: <SparklesIcon />,
+          keywords: "ai continue write complete",
+        },
+        {
+          name: "aiSummarize",
+          title: t("Summarize"),
+          icon: <SparklesIcon />,
+          keywords: "ai summary tldr",
+        }
+      );
     }
 
-    return [...baseItems, { name: "separator" } as MenuItem, templateMenuItem];
+    if (templateMenuItem) {
+      extras.push({ name: "separator" }, templateMenuItem);
+    }
+
+    return extras.length ? [...baseItems, ...extras] : baseItems;
   }, [t, elementRef, templateMenuItem]);
 
   const renderMenuItem = useCallback(

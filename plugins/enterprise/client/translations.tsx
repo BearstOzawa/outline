@@ -108,5 +108,65 @@ export const Translations = () => (
     />
     <Trans defaults={`Looking for answers`} />
     <Trans defaults={`Answer to "{{ query }}"`} />
+    <Trans defaults={`Ask AI`} />
+    <Trans defaults={`Improve writing`} />
+    <Trans defaults={`Make shorter`} />
+    <Trans defaults={`Make longer`} />
+    <Trans defaults={`Fix spelling and grammar`} />
+    <Trans defaults={`Continue writing`} />
+    <Trans defaults={`Summarize`} />
+    <Trans defaults={`Summarize this document`} />
+    <Trans defaults={`Explain this document in simple terms`} />
+    <Trans defaults={`AI summary`} />
+    <Trans defaults={`Generate AI summary`} />
+    <Trans defaults={`Delete chat`} />
+    <Trans defaults={`Generating`} />
+    <Trans defaults={`Members can ask questions and get answers from your documents. Used by Ask AI, search, and document summaries.`} />
+    <Trans defaults={`Answer questions with your own documents. Used by Ask AI, search, and summaries.`} />
+    <Trans defaults={`Find related documents by meaning, not just keywords. Helps when a question is phrased differently from the original text.`} />
+    <Trans defaults={`Find the right documents even when the wording doesn't match.`} />
+    <Trans defaults={`Use embeddings to find related documents for AI answers, even when keywords do not match.`} />
+    <Trans defaults={`Use a reranking model to prioritize the most relevant passages for AI answers.`} />
+    <Trans defaults={`Reranking`} />
+    <Trans defaults={`After finding candidate passages, rank them again and keep the most relevant ones for the answer. Improves quality; needs a rerank model on the server.`} />
+    <Trans defaults={`From what was found, keep the most relevant parts for the answer. More accurate, uses an extra model.`} />
+    <Trans defaults={`Ask questions across documents in your workspace.`} />
+    <Trans defaults={`Delete "{{ title }}"? This cannot be undone.`} />
+    <Trans defaults={`Could not generate a summary`} />
+    <Trans defaults={`What are the key points?`} />
+    <Trans defaults={`What should I do next?`} />
+    <Trans
+      defaults={`Ask questions about this document and its child documents.`}
+    />
+    <Trans defaults={`AI is writing…`} />
+    <Trans defaults={`Select some text first`} />
+    <Trans defaults={`AI provider returned an empty response`} />
+    <Trans defaults={`Send`} />
+    <Trans defaults={`AI`} />
+    <Trans defaults={`New chat`} />
+    <Trans defaults={`Ask about "{{ title }}"`} />
+    <Trans defaults={`Ask a follow-up`} />
+    <Trans defaults={`Enter to send, Shift+Enter for a new line`} />
+    <Trans defaults={`Sources`} />
+    <Trans defaults={`Stop`} />
+    <Trans defaults={`Queue`} />
+    <Trans defaults={`Stopped`} />
+    <Trans defaults={`Queued: {{ query }}`} />
+    <Trans defaults={`Stop generating, or type to queue the next question`} />
+    <Trans defaults={`Vector search`} />
+    <Trans
+      defaults={`Use embeddings to find related documents for AI answers, even when keywords do not match. Requires AI_EMBEDDING_API_BASE_URL and AI_EMBEDDING_MODEL on the server.`}
+    />
+    <Trans defaults={`Ask questions across the workspace`} />
+    <Trans defaults={`What was updated recently?`} />
+    <Trans defaults={`What are the key points across the workspace?`} />
+    <Trans defaults={`What should we focus on?`} />
+    <Trans
+      defaults={`Ask questions across documents in your workspace. Answers use search, embeddings, and optional reranking.`}
+    />
+    <Trans defaults={`Chat history`} />
+    <Trans defaults={`No previous chats`} />
+    <Trans defaults={`Queued`} />
+    <Trans defaults={`{{ count }} in queue`} />
   </>
 );

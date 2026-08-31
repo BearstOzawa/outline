@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation, Trans } from "react-i18next";
 import styled from "styled-components";
 import { randomString } from "@shared/random";
+import { eventGroupLabel, eventLabel } from "@shared/utils/eventLabel";
 import { WebhookSubscriptionValidation } from "@shared/validations";
 import type WebhookSubscription from "~/models/WebhookSubscription";
 import Button from "~/components/Button";
@@ -292,8 +293,8 @@ function WebhookSubscriptionForm({ handleSubmit, webhookSubscription }: Props) {
                           }}
                         />
                         <Text>
-                          {t(`All {{ groupName }} events`, {
-                            groupName: group.replace(/s$/, ""),
+                          {t("All {{ groupName }} events", {
+                            groupName: eventGroupLabel(group, t),
                           })}
                         </Text>
                       </GroupEventCheckboxLabel>
@@ -302,7 +303,7 @@ function WebhookSubscriptionForm({ handleSubmit, webhookSubscription }: Props) {
                       <FieldSet disabled={selectedGroups.includes(group)}>
                         {groupEvents.map((event) => (
                           <EventCheckbox
-                            label={event}
+                            label={eventLabel(event, t)}
                             value={event}
                             key={event}
                             register={register}

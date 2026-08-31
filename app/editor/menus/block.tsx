@@ -22,6 +22,7 @@ import {
   DoneIcon,
   EmbedIcon,
   CollapseIcon,
+  PadlockIcon,
 } from "outline-icons";
 import * as React from "react";
 import styled from "styled-components";
@@ -267,6 +268,12 @@ export default function blockMenuItems(
       icon: <StarredIcon />,
       keywords: "card callout hint suggestion",
       attrs: { style: "tip" },
+    },
+    {
+      name: "encrypted",
+      title: t("Encrypted block"),
+      icon: <PadlockIcon />,
+      keywords: "secret password encrypt lock private confluence 加密 密码 私密",
     },
     {
       name: "separator",

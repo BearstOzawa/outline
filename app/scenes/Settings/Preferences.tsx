@@ -185,22 +185,7 @@ function Preferences() {
       <SettingRow
         label={t("Language")}
         name="language"
-        description={
-          <>
-            <Trans>
-              Choose the interface language. Community translations are accepted
-              though our{" "}
-              <a
-                href="https://translate.getoutline.com"
-                target="_blank"
-                rel="noreferrer"
-              >
-                translation portal
-              </a>
-              .
-            </Trans>
-          </>
-        }
+        description={t("Choose the interface language.")}
       >
         <InputSelect
           options={languageOptions}

@@ -60,6 +60,13 @@ export const IntegrationsCreateSchema = BaseSchema.extend({
       )
       .or(
         z.object({
+          apiEndpoint: z.url(),
+          apiSecret: z.string().min(1),
+          datasource: z.string().min(1),
+        })
+      )
+      .or(
+        z.object({
           diagrams: z.object({ url: z.url() }),
         })
       )
@@ -107,6 +114,13 @@ export const IntegrationsUpdateSchema = BaseSchema.extend({
           measurementId: z.string(),
           instanceUrl: z.url().optional(),
           scriptName: z.string().optional(),
+        })
+      )
+      .or(
+        z.object({
+          apiEndpoint: z.url(),
+          apiSecret: z.string().min(1),
+          datasource: z.string().min(1),
         })
       )
       .or(

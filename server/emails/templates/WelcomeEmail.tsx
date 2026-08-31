@@ -53,9 +53,6 @@ ${this.t("{{ appName }} is a place for your team to build and share knowledge.",
 
 ${this.t("To get started, head to the home screen and try creating a collection to help document your processes, create playbooks, or plan your team's work.")}
 
-${this.t("Or, learn more about everything {{ appName }} can do in the guide", { appName: env.APP_NAME })}:
-https://docs.getoutline.com/s/guide
-
 ${teamUrl}/home
 `;
   }
@@ -81,15 +78,6 @@ ${teamUrl}/home
             {this.t(
               "To get started, head to the home screen and try creating a collection to help document your processes, create playbooks, or plan your team's work."
             )}
-          </p>
-          <p>
-            {this.t("Or, learn more about everything {{ appName }} can do in", {
-              appName: env.APP_NAME,
-            })}{" "}
-            <a href="https://docs.getoutline.com/s/guide">
-              {this.t("the guide")}
-            </a>
-            .
           </p>
           <EmptySpace height={10} />
           <p>

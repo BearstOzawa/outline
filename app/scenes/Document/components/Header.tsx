@@ -1,5 +1,5 @@
 import { observer } from "mobx-react";
-import { TableOfContentsIcon, EditIcon } from "outline-icons";
+import { TableOfContentsIcon, EditIcon, SparklesIcon } from "outline-icons";
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -9,7 +9,10 @@ import Icon from "@shared/components/Icon";
 import { HEADER_HEIGHT } from "@shared/constants";
 import { s } from "@shared/styles";
 import { altDisplay, metaDisplay } from "@shared/utils/keyboard";
-import { publishDocument } from "~/actions/definitions/documents";
+import {
+  askDocumentAI,
+  publishDocument,
+} from "~/actions/definitions/documents";
 import { restoreRevision } from "~/actions/definitions/revisions";
 import { Action } from "~/components/Actions";
 import Badge from "~/components/Badge";
@@ -221,6 +224,19 @@ function DocumentHeader({
                 document={document}
                 onSelectTemplate={onSelectTemplate}
               />
+            </Action>
+          )}
+          {!isDeleted && !isRevision && (
+            <Action>
+              <Button
+                action={askDocumentAI}
+                icon={<SparklesIcon />}
+                aria-label={t("Ask AI")}
+                hideOnActionDisabled
+                neutral
+              >
+                {isCompact ? t("AI") : t("Ask AI")}
+              </Button>
             </Action>
           )}
           {!isEditing && !isRevision && can.update && (

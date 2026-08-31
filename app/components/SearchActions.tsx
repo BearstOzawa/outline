@@ -4,7 +4,10 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Minute } from "@shared/utils/time";
 import { createInternalLinkAction } from "~/actions";
-import { searchDocumentsForQueryActionFactory } from "~/actions/definitions/documents";
+import {
+  askAIForQueryActionFactory,
+  searchDocumentsForQueryActionFactory,
+} from "~/actions/definitions/documents";
 import { navigateToRecentSearchQueryActionFactory } from "~/actions/definitions/navigation";
 import { SearchResultsSection } from "~/actions/sections";
 import Badge from "~/components/Badge";
@@ -112,7 +115,11 @@ function SearchActions() {
 
   useCommandBarActions(
     searchQuery
-      ? [...resultActions, searchDocumentsForQueryActionFactory(searchQuery)]
+      ? [
+          ...resultActions,
+          askAIForQueryActionFactory(searchQuery),
+          searchDocumentsForQueryActionFactory(searchQuery),
+        ]
       : [],
     [resultsKey, searchQuery]
   );

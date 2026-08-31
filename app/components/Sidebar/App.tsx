@@ -11,7 +11,10 @@ import styled from "styled-components";
 import { SidebarSection, UserPreference } from "@shared/types";
 import { metaDisplay } from "@shared/utils/keyboard";
 import Scrollable from "~/components/Scrollable";
-import { navigateToImport } from "~/actions/definitions/navigation";
+import {
+  askWorkspaceAI,
+  navigateToImport,
+} from "~/actions/definitions/navigation";
 import { inviteUser } from "~/actions/definitions/users";
 import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useCurrentUser from "~/hooks/useCurrentUser";
@@ -35,6 +38,7 @@ import HistoryNavigation from "./components/HistoryNavigation";
 import Section from "./components/Section";
 import SharedWithMe from "./components/SharedWithMe";
 import SidebarButton from "./components/SidebarButton";
+import SidebarAction from "./components/SidebarAction";
 import SidebarLink from "./components/SidebarLink";
 import Starred from "./components/Starred";
 import ToggleButton from "./components/ToggleButton";
@@ -136,6 +140,7 @@ function AppSidebar() {
               onClick={handleSearchClick}
               onClickIntent={Scenes.Search.preload}
             />
+            <SidebarAction action={askWorkspaceAI} />
             {can.createDocument && <DraftsLink />}
           </Section>
         </Overflow>

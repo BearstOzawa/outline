@@ -331,6 +331,11 @@ class Document extends ArchivableModel<
   @SkipChangeset
   summary: string;
 
+  @AllowNull
+  @Column(DataType.DATE)
+  @SkipChangeset
+  summaryGeneratedAt: Date | null;
+
   @Column(DataType.ARRAY(DataType.STRING))
   previousTitles: string[];
 

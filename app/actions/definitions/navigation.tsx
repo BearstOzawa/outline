@@ -3,7 +3,6 @@ import {
   SearchIcon,
   ArchiveIcon,
   TrashIcon,
-  OpenIcon,
   SettingsIcon,
   KeyboardIcon,
   EmailIcon,
@@ -12,10 +11,10 @@ import {
   BrowserIcon,
   ShapesIcon,
   DraftsIcon,
-  BugIcon,
   ImportIcon,
+  SparklesIcon,
 } from "outline-icons";
-import { UrlHelper } from "@shared/utils/UrlHelper";
+import { TeamPreference } from "@shared/types";
 import { isMac } from "@shared/utils/browser";
 import stores from "~/stores";
 import type SearchQuery from "~/models/SearchQuery";
@@ -27,7 +26,6 @@ import {
 } from "~/actions";
 import { NavigationSection, RecentSearchesSection } from "~/actions/sections";
 import Desktop from "~/utils/Desktop";
-import isCloudHosted from "~/utils/isCloudHosted";
 import {
   homePath,
   searchPath,
@@ -65,6 +63,24 @@ export const navigateToDrafts = createInternalLinkAction({
   icon: <DraftsIcon />,
   to: draftsPath(),
   visible: ({ location }) => location.pathname !== draftsPath(),
+});
+
+export const askWorkspaceAI = createAction({
+  name: ({ t }) => t("Ask AI"),
+  analyticsName: "Ask workspace AI",
+  section: NavigationSection,
+  icon: <SparklesIcon />,
+  visible: ({ stores }) =>
+    !!stores.auth.team?.getPreference(TeamPreference.AIAnswers),
+  perform: async ({ stores, t }) => {
+    const { default: AskAI } = await import("../../../plugins/ee/client/AskAI");
+    stores.dialogs.openModal({
+      title: t("Ask AI"),
+      width: "640px",
+      height: "min(80vh, 720px)",
+      content: <AskAI />,
+    });
+  },
 });
 
 export const navigateToSearch = createInternalLinkAction({
@@ -167,62 +183,12 @@ export const navigateToAccountPreferences = createInternalLinkAction({
   to: settingsPath("preferences"),
 });
 
-export const openDocumentation = createExternalLinkAction({
-  name: ({ t }) => t("Documentation"),
-  analyticsName: "Open documentation",
-  section: NavigationSection,
-  iconInContextMenu: false,
-  icon: <OpenIcon />,
-  url: UrlHelper.guide,
-  target: "_blank",
-});
-
-export const openAPIDocumentation = createExternalLinkAction({
-  name: ({ t }) => t("API documentation"),
-  analyticsName: "Open API documentation",
-  section: NavigationSection,
-  iconInContextMenu: false,
-  icon: <OpenIcon />,
-  url: UrlHelper.developers,
-  target: "_blank",
-});
-
 export const toggleSidebar = createAction({
   name: ({ t }) => t("Toggle sidebar"),
   analyticsName: "Toggle sidebar",
   keywords: "hide show navigation",
   section: NavigationSection,
   perform: () => stores.ui.toggleCollapsedSidebar(),
-});
-
-export const openFeedbackUrl = createExternalLinkAction({
-  name: ({ t }) => t("Send us feedback"),
-  analyticsName: "Open feedback",
-  section: NavigationSection,
-  iconInContextMenu: false,
-  icon: <EmailIcon />,
-  url: UrlHelper.contact,
-  target: "_blank",
-});
-
-export const openBugReportUrl = createExternalLinkAction({
-  name: ({ t }) => t("Report a bug"),
-  analyticsName: "Open bug report",
-  section: NavigationSection,
-  iconInContextMenu: false,
-  icon: <BugIcon />,
-  url: UrlHelper.github,
-  target: "_blank",
-});
-
-export const openChangelog = createExternalLinkAction({
-  name: ({ t }) => t("Changelog"),
-  analyticsName: "Open changelog",
-  section: NavigationSection,
-  iconInContextMenu: false,
-  icon: <OpenIcon />,
-  url: UrlHelper.changelog,
-  target: "_blank",
 });
 
 export const openKeyboardShortcuts = createAction({
@@ -249,7 +215,7 @@ export const downloadApp = createExternalLinkAction({
   section: NavigationSection,
   iconInContextMenu: false,
   icon: <BrowserIcon />,
-  visible: () => !Desktop.isElectron() && isMac && isCloudHosted,
+  visible: () => false,
   url: "https://desktop.getoutline.com",
   target: "_blank",
 });
@@ -269,15 +235,11 @@ export const logout = createAction({
 
 export const rootNavigationActions = [
   navigateToHome,
+  askWorkspaceAI,
   navigateToDrafts,
   navigateToArchive,
   navigateToTrash,
   downloadApp,
-  openDocumentation,
-  openAPIDocumentation,
-  openFeedbackUrl,
-  openBugReportUrl,
-  openChangelog,
   openKeyboardShortcuts,
   toggleSidebar,
   logout,

@@ -18,8 +18,12 @@ import {
   DataType,
 } from "sequelize-typescript";
 import { v4 as uuidv4 } from "uuid";
-import type { CollectionPermission, FileOperationFormat } from "@shared/types";
-import { FileOperationState, FileOperationType } from "@shared/types";
+import type { CollectionPermission } from "@shared/types";
+import {
+  FileOperationFormat,
+  FileOperationState,
+  FileOperationType,
+} from "@shared/types";
 import FileStorage from "@server/storage/files";
 import { ValidateKey } from "@server/validation";
 import Collection from "./Collection";
@@ -295,8 +299,12 @@ class FileOperation extends ParanoidModel<
     teamId: string;
     format: FileOperationFormat;
   }) {
+    const extension =
+      format === FileOperationFormat.PDF
+        ? "pdf"
+        : `${format.replace(/outline-/, "")}.zip`;
     const fileName = ValidateKey.sanitizeSegment(
-      `${name}-export.${format.replace(/outline-/, "")}.zip`
+      `${name}-export.${extension}`
     );
 
     return `${Buckets.uploads}/${teamId}/${uuidv4()}/${fileName}`;

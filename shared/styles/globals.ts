@@ -168,4 +168,13 @@ export default createGlobalStyle<Props>`
   &.${EditorStyleHelper.resizeDragging} *::after {
     cursor: var(--resize-drag-cursor) !important;
   }
+
+  @media print {
+    [data-radix-popper-content-wrapper],
+    [data-radix-portal],
+    [role="menu"],
+    [role="dialog"] {
+      display: none !important;
+    }
+  }
 `;

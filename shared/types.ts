@@ -183,6 +183,8 @@ export enum IntegrationService {
   Markdown = "markdown",
   Slab = "slab",
   JSON = "json",
+  Confluence = "confluence",
+  Glean = "glean",
 }
 
 export type ImportableIntegrationService = Extract<
@@ -191,6 +193,7 @@ export type ImportableIntegrationService = Extract<
   | IntegrationService.Markdown
   | IntegrationService.Slab
   | IntegrationService.JSON
+  | IntegrationService.Confluence
 >;
 
 export const ImportableIntegrationService = {
@@ -198,6 +201,7 @@ export const ImportableIntegrationService = {
   Markdown: IntegrationService.Markdown,
   Slab: IntegrationService.Slab,
   JSON: IntegrationService.JSON,
+  Confluence: IntegrationService.Confluence,
 } as const;
 
 export type IssueTrackerIntegrationService = Extract<
@@ -221,6 +225,7 @@ export type UserCreatableIntegrationService = Extract<
   | IntegrationService.Matomo
   | IntegrationService.Umami
   | IntegrationService.GitLab
+  | IntegrationService.Glean
 >;
 
 export const UserCreatableIntegrationService = {
@@ -230,6 +235,7 @@ export const UserCreatableIntegrationService = {
   Matomo: IntegrationService.Matomo,
   Umami: IntegrationService.Umami,
   GitLab: IntegrationService.GitLab,
+  Glean: IntegrationService.Glean,
 } as const;
 
 export enum CollectionPermission {
@@ -289,7 +295,14 @@ export type IntegrationSettings<T> = T extends IntegrationType.Embed
       };
     }
   : T extends IntegrationType.Analytics
-    ? { measurementId: string; instanceUrl?: string; scriptName?: string }
+    ? {
+        measurementId?: string;
+        instanceUrl?: string;
+        scriptName?: string;
+        apiEndpoint?: string;
+        apiSecret?: string;
+        datasource?: string;
+      }
     : T extends IntegrationType.Post
       ? { url: string; channel: string; channelId: string }
       : T extends IntegrationType.Command
@@ -505,6 +518,12 @@ export enum TeamPreference {
   MCP = "mcp",
   /** List of disabled embed provider titles. */
   DisabledEmbeds = "disabledEmbeds",
+  /** Whether search can return AI-generated answers from workspace documents. */
+  AIAnswers = "aiAnswers",
+  /** Whether AI answers may retrieve related documents with embeddings. */
+  AIVectorSearch = "aiVectorSearch",
+  /** Whether AI answers may rerank retrieved passages. */
+  AIRerank = "aiRerank",
 }
 
 export type TeamPreferences = {
@@ -522,6 +541,9 @@ export type TeamPreferences = {
   [TeamPreference.EmailDisplay]?: EmailDisplay;
   [TeamPreference.MCP]?: boolean;
   [TeamPreference.DisabledEmbeds]?: string[];
+  [TeamPreference.AIAnswers]?: boolean;
+  [TeamPreference.AIVectorSearch]?: boolean;
+  [TeamPreference.AIRerank]?: boolean;
 };
 
 export enum NavigationNodeType {

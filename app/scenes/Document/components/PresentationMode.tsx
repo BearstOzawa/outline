@@ -359,14 +359,7 @@ function PresentationMode({ title, icon, iconColor, data, onClose }: Props) {
               <InstructionBody>
                 {t(
                   "Add content to your document, then use headings or dividers to separate it into slides."
-                )}{" "}
-                <a
-                  href="https://docs.getoutline.com/s/guide/doc/present-mode-yMGzaY7A9L"
-                  target="_blank"
-                >
-                  {t("Learn more")}
-                </a>
-                .
+                )}
               </InstructionBody>
             </InstructionSlide>
           ) : slideData ? (

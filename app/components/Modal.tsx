@@ -18,6 +18,20 @@ import ErrorBoundary from "./ErrorBoundary";
 import Tooltip from "./Tooltip";
 import { useDialogContext } from "~/components/DialogContext";
 
+const ModalSidePanelContext = React.createContext<
+  (node: React.ReactNode | null) => void
+>(() => undefined);
+
+/** Render a panel attached to the left of the current modal window. */
+export function useModalSidePanel(node: React.ReactNode | null) {
+  const setSidePanel = React.useContext(ModalSidePanelContext);
+
+  React.useEffect(() => {
+    setSidePanel(node);
+    return () => setSidePanel(null);
+  }, [node, setSidePanel]);
+}
+
 type Props = {
   children?: React.ReactNode;
   isOpen: boolean;
@@ -42,6 +56,9 @@ const Modal: React.FC<Props> = ({
   const { t } = useTranslation();
   const resolvedTitle = title ?? t("Untitled");
   const dialog = useDialogContext();
+  const [sidePanel, setSidePanel] = React.useState<React.ReactNode | null>(
+    null
+  );
 
   const onClose = React.useCallback(() => {
     dialog.setAnimating(false); // Reset
@@ -53,6 +70,7 @@ const Modal: React.FC<Props> = ({
   }
 
   return (
+    <ModalSidePanelContext.Provider value={setSidePanel}>
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <StyledOverlay />
@@ -63,6 +81,7 @@ const Modal: React.FC<Props> = ({
         >
           {isMobile ? (
             <Mobile>
+              {sidePanel ? <SidePanel $flush>{sidePanel}</SidePanel> : null}
               <MobileContent>
                 <Centered onClick={(ev) => ev.stopPropagation()} column>
                   <Dialog.Title asChild>
@@ -83,17 +102,27 @@ const Modal: React.FC<Props> = ({
             </Mobile>
           ) : (
             <Wrapper $width={width} $height={height}>
+              {sidePanel ? <SidePanel>{sidePanel}</SidePanel> : null}
               <Centered
+                $fill={!!height}
                 onClick={(ev) => ev.stopPropagation()}
                 // maxHeight needed for proper overflow behavior in Safari
-                style={{ maxHeight: "65vh" }}
+                style={
+                  height
+                    ? { height: "100%", maxHeight: "none" }
+                    : { maxHeight: "65vh" }
+                }
                 column
                 reverse
               >
                 <DesktopContent
                   style={style}
-                  topShadow
-                  overflow={dialog.animating ? "hidden" : undefined}
+                  $fill={!!height}
+                  flex={!!height}
+                  topShadow={!height}
+                  overflow={
+                    height ? "hidden" : dialog.animating ? "hidden" : undefined
+                  }
                   onAnimationEnd={() => dialog.setAnimating(false)}
                 >
                   <ErrorBoundary component="div">{children}</ErrorBoundary>
@@ -114,6 +143,7 @@ const Modal: React.FC<Props> = ({
         </StyledContent>
       </Dialog.Portal>
     </Dialog.Root>
+    </ModalSidePanelContext.Provider>
   );
 };
 
@@ -166,15 +196,30 @@ const MobileContent = styled(Scrollable)`
   `};
 `;
 
-const DesktopContent = styled(Scrollable)`
+const DesktopContent = styled(Scrollable)<{ $fill?: boolean }>`
   padding: 8px 24px 24px;
+  ${(props) =>
+    props.$fill &&
+    `
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  `}
 `;
 
-const Centered = styled(Flex)`
+const Centered = styled(Flex)<{ $fill?: boolean }>`
   width: 640px;
   max-width: 100%;
   position: relative;
   margin: 0 auto;
+  ${(props) =>
+    props.$fill &&
+    `
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+  `}
 `;
 
 const Close = styled(NudeButton)`
@@ -238,25 +283,45 @@ const Header = styled(Flex)`
   }
 `;
 
+const SidePanel = styled.div<{ $flush?: boolean }>`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: ${(props) => (props.$flush ? "auto" : "100%")};
+  left: ${(props) => (props.$flush ? "0" : "auto")};
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: auto;
+  min-height: 0;
+  background: transparent;
+  overflow: visible;
+  z-index: 1;
+`;
+
 const Wrapper = styled.div<{
   $width?: number | string;
   $height?: number | string;
 }>`
   animation: ${fadeAndScaleIn} 250ms ease;
 
-  margin: 25vh auto auto auto;
+  position: relative;
+  margin: ${(props) => (props.$height ? "auto" : "25vh auto auto auto")};
   width: 75vw;
   min-width: 350px;
   max-width: ${(props) => props.$width || "450px"};
+  height: ${(props) => props.$height || "auto"};
   max-height: ${(props) => props.$height || "70vh"};
   z-index: ${depths.modal};
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  justify-content: ${(props) => (props.$height ? "stretch" : "center")};
+  align-items: stretch;
   background: ${s("modalBackground")};
   box-shadow: ${s("modalShadow")};
   ${borderRadius(10)}
   outline: none;
+  overflow: visible;
 
   ${NudeButton} {
     &:hover,

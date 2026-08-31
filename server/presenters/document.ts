@@ -103,6 +103,9 @@ async function presentDocument(
 
   if (document.summary) {
     res.summary = document.summary;
+    if (document.summaryGeneratedAt) {
+      res.summaryGeneratedAt = document.summaryGeneratedAt;
+    }
   }
 
   if (!options.isPublic) {

@@ -30,8 +30,7 @@ export default function Version() {
 
   return (
     <SidebarLink
-      target="_blank"
-      href="https://github.com/outline/outline/releases"
+      disabled
       label={
         <>
           v{currentVersion}

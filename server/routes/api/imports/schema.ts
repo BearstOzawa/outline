@@ -53,6 +53,11 @@ export const ImportsCreateSchema = BaseSchema.extend({
       attachmentId: z.uuid(),
       permission: z.enum(CollectionPermission).optional(),
     }),
+    z.object({
+      service: z.literal(IntegrationService.Confluence),
+      attachmentId: z.uuid(),
+      permission: z.enum(CollectionPermission).optional(),
+    }),
   ]),
 });
 

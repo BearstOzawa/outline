@@ -121,9 +121,7 @@ function Templates() {
     >
       <Heading>{t("Templates")}</Heading>
       <Text as="p" type="secondary">
-        <Trans>
-          Templates help your team create consistent and accurate documentation.
-        </Trans>
+        <Trans defaults="Templates help your team create consistent and accurate documentation." />
       </Text>
       {isEmpty ? (
         <Empty>{t("No templates have been created yet")}</Empty>

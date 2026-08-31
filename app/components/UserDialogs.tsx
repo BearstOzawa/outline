@@ -53,6 +53,11 @@ export function UserChangeRoleDialog({
     case UserRole.Viewer:
       accessNote = t("Viewers can only view and comment on documents.");
       break;
+    case UserRole.Guest:
+      accessNote = t(
+        "Guests can view only what is explicitly shared with them."
+      );
+      break;
   }
 
   return (

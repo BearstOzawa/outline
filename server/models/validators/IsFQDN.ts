@@ -8,6 +8,9 @@ export default function IsFQDN(target: object, propertyName: string) {
   return addAttributeOptions(target, propertyName, {
     validate: {
       validDomain(value: string) {
+        if (value == null || value === "") {
+          return;
+        }
         if (!isFQDN(value)) {
           throw new Error("Must be a fully qualified domain name");
         }

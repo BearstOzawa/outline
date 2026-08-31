@@ -134,6 +134,17 @@ export default class Document extends ArchivableModel implements Searchable {
   @observable
   title: string;
 
+  /**
+   * AI-generated summary of the document. Stored on the server and included
+   * on public shares. Not a writable field from the editor.
+   */
+  @observable
+  summary?: string | null;
+
+  /** When the current AI summary was generated. */
+  @observable
+  summaryGeneratedAt?: string | null;
+
   /** The likely language of the document, in ISO 639-1 format.  */
   language: string | undefined;
 

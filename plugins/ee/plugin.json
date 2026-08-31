@@ -1,0 +1,7 @@
+{
+  "id": "ee",
+  "name": "Workspace extras",
+  "priority": 50,
+  "description": "Self-hosted extras: audit log, collection admin, document attributes, AI answers, SAML, and Confluence import.",
+  "deployments": ["community", "enterprise"]
+}

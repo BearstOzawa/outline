@@ -53,6 +53,7 @@ interface FetchOptions {
   credentials?: "omit" | "same-origin" | "include";
   headers?: Record<string, string>;
   baseUrl?: string;
+  signal?: AbortSignal;
 }
 
 /** A request captured during a batch, awaiting dispatch in a `/batch` call. */
@@ -234,8 +235,15 @@ class ApiClient {
         redirect: "follow",
         credentials: "same-origin",
         cache: "no-cache",
+        signal: options.signal,
       });
-    } catch (_err) {
+    } catch (err) {
+      if (
+        (err instanceof DOMException && err.name === "AbortError") ||
+        (err instanceof Error && err.name === "AbortError")
+      ) {
+        throw new ClientClosedRequestError("Request aborted");
+      }
       if (window.navigator.onLine) {
         throw new NetworkError("A network error occurred, try again?");
       } else {
@@ -432,7 +440,127 @@ class ApiClient {
         });
       });
     }
+    if (options?.signal) {
+      return this.fetch<T>(path, "POST", data, { ...options, retry: false });
+    }
     return this.deduplicate<T>(path, "POST", data, options);
+  };
+
+  /**
+   * POST that reads a text/event-stream body and invokes onEvent for each data frame.
+   */
+  stream = async (
+    path: string,
+    data: JSONObject | undefined,
+    options: FetchOptions & {
+      onEvent: (event: Record<string, unknown>) => void;
+    }
+  ): Promise<void> => {
+    let urlToFetch: string;
+    if (path.match(/^http/)) {
+      urlToFetch = path;
+    } else {
+      urlToFetch = (options.baseUrl ?? this.baseUrl) + path;
+    }
+
+    const payload = this.shareId ? { ...data, shareId: this.shareId } : data;
+    const headers = new Headers({
+      Accept: "text/event-stream",
+      "Content-Type": "application/json",
+      "cache-control": "no-cache",
+      "x-editor-version": EDITOR_VERSION,
+      "x-api-version": "4",
+      "x-client-version": env.VERSION ? `${version}-${env.VERSION}` : version,
+      pragma: "no-cache",
+      ...options.headers,
+    });
+    const csrfToken = getCSRFToken();
+    if (csrfToken) {
+      headers.set(CSRF.headerName, csrfToken);
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(urlToFetch, {
+        method: "POST",
+        body: JSON.stringify(payload ?? {}),
+        headers,
+        credentials: "same-origin",
+        cache: "no-cache",
+        signal: options.signal,
+      });
+    } catch (err) {
+      if (
+        (err instanceof DOMException && err.name === "AbortError") ||
+        (err instanceof Error && err.name === "AbortError")
+      ) {
+        throw new ClientClosedRequestError("Request aborted");
+      }
+      if (window.navigator.onLine) {
+        throw new NetworkError("A network error occurred, try again?");
+      }
+      throw new OfflineError("No internet connection available");
+    }
+
+    if (!(response.status >= 200 && response.status < 300)) {
+      const error: ApiErrorResponse = {};
+      try {
+        const parsed: ApiErrorResponse = await response.json();
+        error.message = parsed.message || "";
+        error.error = parsed.error;
+        error.data = parsed.data;
+      } catch {
+        // Stream endpoints may not return JSON on failure.
+      }
+      throw await this.toError(response.status, error.error, error.message);
+    }
+
+    if (!response.body) {
+      throw new RequestError("Empty stream");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split(/\r?\n\r?\n/);
+        buffer = frames.pop() ?? "";
+        for (const frame of frames) {
+          const line = frame
+            .split(/\r?\n/)
+            .map((part) => part.trim())
+            .find((part) => part.startsWith("data:"));
+          if (!line) {
+            continue;
+          }
+          const raw = line.slice(line.indexOf(":") + 1).trim();
+          if (!raw || raw === "[DONE]") {
+            continue;
+          }
+          try {
+            options.onEvent(JSON.parse(raw) as Record<string, unknown>);
+          } catch {
+            // Ignore malformed keep-alives.
+          }
+        }
+      }
+    } catch (err) {
+      if (
+        (err instanceof DOMException && err.name === "AbortError") ||
+        (err instanceof Error && err.name === "AbortError")
+      ) {
+        throw new ClientClosedRequestError("Request aborted");
+      }
+      throw err;
+    } finally {
+      reader.releaseLock();
+    }
   };
 
   /**

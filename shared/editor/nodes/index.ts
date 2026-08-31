@@ -26,6 +26,7 @@ import CodeFence from "./CodeFence";
 import Doc from "./Doc";
 import Embed from "./Embed";
 import Emoji from "./Emoji";
+import Encrypted from "./Encrypted";
 import HardBreak from "./HardBreak";
 import Heading from "./Heading";
 import HorizontalRule from "./HorizontalRule";
@@ -117,6 +118,7 @@ export const richExtensions: Nodes = [
   Embed,
   Attachment,
   Video,
+  Encrypted,
   Notice,
   Heading,
   HeadingPrefix,

@@ -5,7 +5,6 @@ import type { TFunction } from "i18next";
 import { Trans, useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { s } from "@shared/styles";
-import { UrlHelper } from "@shared/utils/UrlHelper";
 import Button from "~/components/Button";
 import CenteredContent from "~/components/CenteredContent";
 import Heading from "~/components/Heading";
@@ -117,10 +116,6 @@ class ErrorBoundaryClass extends React.Component<Props> {
     this.showDetails = true;
   };
 
-  handleReportBug = () => {
-    window.open(isCloudHosted ? UrlHelper.contact : UrlHelper.github);
-  };
-
   handleClearCache = async () => {
     await deleteAllDatabases();
     Storage.clear();
@@ -198,11 +193,7 @@ class ErrorBoundaryClass extends React.Component<Props> {
             <Button onClick={this.handleReload} neutral={this.isRepeatedError}>
               {t("Reload")}
             </Button>
-            {this.showDetails ? (
-              <Button onClick={this.handleReportBug} neutral>
-                <Trans>Report a bug</Trans>
-              </Button>
-            ) : (
+            {!this.showDetails && (
               <Button onClick={this.handleShowDetails} neutral>
                 <Trans>Show detail</Trans>…
               </Button>

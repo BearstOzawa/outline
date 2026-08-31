@@ -172,6 +172,29 @@ export default class MarkdownAPIImportTask extends APIImportTask<Markdown> {
     return true;
   }
 
+  /**
+   * Whether a zip entry should be imported as a document. Markdown sources use
+   * `.md` / `.markdown`; HTML sources (e.g. Confluence) override this.
+   */
+  protected isDocumentFile(fileName: string): boolean {
+    const ext = path.extname(fileName).toLowerCase();
+    return ext === ".md" || ext === ".markdown";
+  }
+
+  /**
+   * Read a document zip entry into markdown text stored on the in-memory tree.
+   */
+  protected async loadDocumentText(
+    node: ZipTreeNode,
+    entry: { readBuffer: (maxSize: number) => Promise<Buffer> }
+  ): Promise<string | undefined> {
+    if (!this.isDocumentFile(node.name)) {
+      return undefined;
+    }
+    const buffer = await entry.readBuffer(DocumentValidation.maxStateLength);
+    return buffer.toString("utf8");
+  }
+
   protected async scheduleNextTask(importTask: ImportTask<Markdown>) {
     await new MarkdownAPIImportTask().schedule({ importTaskId: importTask.id });
   }
@@ -268,12 +291,9 @@ export default class MarkdownAPIImportTask extends APIImportTask<Markdown> {
       const tree = await ZipHelper.toFileTree(
         handle.path,
         async (node, entry) => {
-          const ext = path.extname(node.name).toLowerCase();
-          if (ext === ".md" || ext === ".markdown") {
-            const buffer = await entry.readBuffer(
-              DocumentValidation.maxStateLength
-            );
-            markdownByNode.set(node, buffer.toString("utf8"));
+          const text = await this.loadDocumentText(node, entry);
+          if (text !== undefined) {
+            markdownByNode.set(node, text);
           }
         }
       );
@@ -292,8 +312,7 @@ export default class MarkdownAPIImportTask extends APIImportTask<Markdown> {
 
       for (const node of rootNodes) {
         if (node.children.length === 0) {
-          const ext = path.extname(node.name).toLowerCase();
-          if (ext === ".md" || ext === ".markdown") {
+          if (this.isDocumentFile(node.name)) {
             looseDocuments.push(node);
           } else {
             manifest.push({
@@ -604,7 +623,7 @@ export default class MarkdownAPIImportTask extends APIImportTask<Markdown> {
       if (!ext) {
         return false;
       }
-      return ext !== ".md" && ext !== ".markdown";
+      return !this.isDocumentFile(child.name);
     });
   }
 
@@ -678,8 +697,7 @@ export default class MarkdownAPIImportTask extends APIImportTask<Markdown> {
         continue;
       }
 
-      const ext = path.extname(child.name).toLowerCase();
-      const isMarkdown = ext === ".md" || ext === ".markdown";
+      const isMarkdown = this.isDocumentFile(child.name);
       const isFolder = child.children.length > 0;
 
       if (!isMarkdown && !isFolder) {

@@ -3,7 +3,6 @@ import { ApiKey, User, Team } from "@server/models";
 import { allow } from "./cancan";
 import {
   and,
-  isCloudHosted,
   isOwner,
   isTeamModel,
   isTeamMutable,
@@ -24,7 +23,6 @@ allow(User, "createApiKey", Team, (actor, team) =>
 allow(User, "listApiKeys", Team, (actor, team) =>
   and(
     //
-    isCloudHosted(),
     isTeamModel(actor, team),
     actor.isAdmin
   )

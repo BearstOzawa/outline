@@ -73,6 +73,7 @@ class Team extends Model {
   @observable
   preferences: TeamPreferences | null;
 
+  @Field
   @observable
   domain: string | null | undefined;
 

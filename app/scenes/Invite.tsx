@@ -115,25 +115,33 @@ function Invite({ onSubmit }: Props) {
 
   const roleName = pluralize(role);
   const collectionCount = collections.nonPrivate.length;
-  const collectionAccessNote = collectionCount ? (
-    <span>
-      <Trans>Invited {{ roleName }} will receive access to</Trans>{" "}
-      <Tooltip
-        content={
-          <>
-            {collections.nonPrivate.map((collection) => (
-              <li key={collection.id}>{collection.name}</li>
-            ))}
-          </>
-        }
-      >
-        <strong>
-          <Trans>{{ collectionCount }} collections</Trans>
-        </strong>
-      </Tooltip>
-      .{" "}
-    </span>
-  ) : undefined;
+  const collectionAccessNote =
+    role === UserRole.Guest ? (
+      <span>
+        <Trans>
+          Invited {{ roleName }} will not receive access to any collections or
+          documents unless explicitly shared.
+        </Trans>{" "}
+      </span>
+    ) : collectionCount ? (
+      <span>
+        <Trans>Invited {{ roleName }} will receive access to</Trans>{" "}
+        <Tooltip
+          content={
+            <>
+              {collections.nonPrivate.map((collection) => (
+                <li key={collection.id}>{collection.name}</li>
+              ))}
+            </>
+          }
+        >
+          <strong>
+            <Trans>{{ collectionCount }} collections</Trans>
+          </strong>
+        </Tooltip>
+        .{" "}
+      </span>
+    ) : undefined;
 
   const options = React.useMemo<Option[]>(() => {
     const memo: Option[] = [];
@@ -160,6 +168,12 @@ function Invite({ onSubmit }: Props) {
         label: t("Viewer"),
         description: t("Can view and comment"),
         value: UserRole.Viewer,
+      },
+      {
+        type: "item",
+        label: t("Guest"),
+        description: t("Can view only what is explicitly shared"),
+        value: UserRole.Guest,
       },
     ];
   }, [t, user]);

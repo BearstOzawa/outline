@@ -41,7 +41,10 @@ export type JSONImportInput = z.infer<typeof JSONImportInputItemSchema>[];
 export type ImportInput<T extends ImportableIntegrationService> =
   T extends IntegrationService.Notion
     ? NotionImportInput
-    : T extends IntegrationService.Markdown | IntegrationService.Slab
+    : T extends
+          | IntegrationService.Markdown
+          | IntegrationService.Slab
+          | IntegrationService.Confluence
       ? MarkdownImportInput
       : T extends IntegrationService.JSON
         ? JSONImportInput
@@ -134,6 +137,7 @@ export interface JSONImportScratch {
 export type ImportScratch<T extends ImportableIntegrationService> = T extends
   | IntegrationService.Markdown
   | IntegrationService.Slab
+  | IntegrationService.Confluence
   ? MarkdownImportScratch
   : T extends IntegrationService.JSON
     ? JSONImportScratch

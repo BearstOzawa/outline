@@ -133,9 +133,15 @@ export function createOIDCRouter(
             // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
             const emailVerifiedClaim =
               profile.email_verified ?? token.email_verified;
+            // Gitea and many self-hosted IdPs omit email_verified. Treat a
+            // missing claim as verified on self-hosted so the same mailbox can
+            // be linked to an existing email account. Explicit false still
+            // blocks linking.
             const emailVerified =
               emailVerifiedClaim === undefined
-                ? undefined
+                ? env.isCloudHosted
+                  ? undefined
+                  : true
                 : emailVerifiedClaim === true || emailVerifiedClaim === "true";
 
             const team = await getTeamFromContext(context);

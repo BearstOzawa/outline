@@ -13,9 +13,8 @@ type Props = {
   onBack?: () => void;
 };
 
-export function BackButton({ onBack, config }: Props) {
+export function BackButton({ onBack }: Props) {
   const { t } = useTranslation();
-  const isSubdomain = !!config?.hostname;
 
   if (onBack) {
     return (
@@ -44,7 +43,7 @@ export function BackButton({ onBack, config }: Props) {
   }
 
   return (
-    <Link href={isSubdomain ? env.URL : "https://www.getoutline.com"}>
+    <Link href={env.URL}>
       <BackIcon /> {t("Back to home")}
     </Link>
   );

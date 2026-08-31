@@ -272,7 +272,9 @@ const useSettingsConfig = () => {
             : settingsPath(plugin.id),
         group: t(group),
         pluginId: plugin.id,
-        description: plugin.value.description,
+        description: plugin.value.description
+          ? t(plugin.value.description)
+          : undefined,
         component: plugin.value.component.Component,
         preload: plugin.value.component.preload,
         enabled: plugin.value.enabled

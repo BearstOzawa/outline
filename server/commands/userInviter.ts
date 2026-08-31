@@ -80,9 +80,11 @@ export default async function userInviter(
         role:
           user.isAdmin && invite.role === UserRole.Admin
             ? UserRole.Admin
-            : user.isViewer || invite.role === UserRole.Viewer
-              ? UserRole.Viewer
-              : UserRole.Member,
+            : invite.role === UserRole.Guest
+              ? UserRole.Guest
+              : user.isViewer || invite.role === UserRole.Viewer
+                ? UserRole.Viewer
+                : UserRole.Member,
         invitedById: user.id,
         flags: suppressEmail
           ? undefined

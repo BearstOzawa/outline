@@ -19,6 +19,7 @@ describe("policies/team", () => {
     expect(abilities.createTemplate).toEqual(false);
     expect(abilities.createGroup).toEqual(false);
     expect(abilities.createIntegration).toEqual(false);
+    expect(abilities.audit).toEqual(false);
   });
 
   it("should allow admins to manage", async () => {
@@ -36,6 +37,7 @@ describe("policies/team", () => {
     expect(abilities.createTemplate).toBeTruthy();
     expect(abilities.createGroup).toBeTruthy();
     expect(abilities.createIntegration).toBeTruthy();
+    expect(abilities.audit).toBeTruthy();
   });
 
   it("should allow creation on hosted envs", async () => {

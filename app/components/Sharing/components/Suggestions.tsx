@@ -88,9 +88,13 @@ export const Suggestions = observer(
         avatarUrl: "",
         color: stringToColor(email),
         initial: email[0].toUpperCase(),
-        email: t("Invite to workspace"),
+        email: document
+          ? t("Invite to document")
+          : collection
+            ? t("Invite to collection")
+            : t("Invite to workspace"),
       }),
-      [t]
+      [t, document, collection]
     );
 
     const suggestions = React.useMemo(() => {

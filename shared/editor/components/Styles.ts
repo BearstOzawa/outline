@@ -1021,6 +1021,20 @@ img.ProseMirror-separator {
   display: block;
 }
 
+.component-encrypted {
+  max-width: 100%;
+  min-width: 0;
+
+  &,
+  & * {
+    box-sizing: border-box;
+  }
+
+  &.ProseMirror-selectednode {
+    outline-offset: 2px;
+  }
+}
+
 .component-image:has(.image-icon) {
   display: inline-block;
   vertical-align: text-bottom;

@@ -27,8 +27,8 @@ describe("email", () => {
     expect(body.ok).toEqual(false);
   });
 
-  it("should respond with redirect location when user is SSO enabled", async () => {
-    const spy = vi.spyOn(WelcomeEmail.prototype, "schedule");
+  it("should send a sign-in email when user already has SSO", async () => {
+    const spy = vi.spyOn(SigninEmail.prototype, "schedule");
     const subdomain = faker.internet.domainWord();
     const team = await buildTeam({ subdomain });
     const user = await buildUser({ teamId: team.id });
@@ -42,8 +42,9 @@ describe("email", () => {
     });
     const body = await res.json();
     expect(res.status).toEqual(200);
-    expect(body.redirect).toMatch("slack");
-    expect(spy).not.toHaveBeenCalled();
+    expect(body.success).toEqual(true);
+    expect(body.redirect).toBeUndefined();
+    expect(spy).toHaveBeenCalled();
     spy.mockRestore();
   });
 
@@ -168,8 +169,9 @@ describe("email", () => {
       });
       const body = await res.json();
       expect(res.status).toEqual(200);
-      expect(body.redirect).toMatch("slack");
-      expect(spy).not.toHaveBeenCalled();
+      expect(body.success).toEqual(true);
+      expect(body.redirect).toBeUndefined();
+      expect(spy).toHaveBeenCalled();
       spy.mockRestore();
     });
 
@@ -203,7 +205,7 @@ describe("email", () => {
     });
 
     it("should default to custom domain with SSO", async () => {
-      const spy = vi.spyOn(WelcomeEmail.prototype, "schedule");
+      const spy = vi.spyOn(SigninEmail.prototype, "schedule");
       const email = "sso-user-2@example.org";
       const domain = faker.internet.domainName();
       const team = await buildTeam({
@@ -226,8 +228,9 @@ describe("email", () => {
       });
       const body = await res.json();
       expect(res.status).toEqual(200);
-      expect(body.redirect).toMatch("slack");
-      expect(spy).not.toHaveBeenCalled();
+      expect(body.success).toEqual(true);
+      expect(body.redirect).toBeUndefined();
+      expect(spy).toHaveBeenCalled();
       spy.mockRestore();
     });
 

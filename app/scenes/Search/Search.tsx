@@ -1,4 +1,5 @@
 import { observer } from "mobx-react";
+import { errToString } from "@shared/utils/error";
 import { v4 as uuidv4 } from "uuid";
 import queryString from "query-string";
 import * as React from "react";
@@ -15,7 +16,7 @@ import type {
   DirectionFilter as TDirectionFilter,
   DateFilter as TDateFilter,
 } from "@shared/types";
-import { StatusFilter as TStatusFilter } from "@shared/types";
+import { StatusFilter as TStatusFilter, TeamPreference } from "@shared/types";
 import ArrowKeyNavigation from "~/components/ArrowKeyNavigation";
 import DocumentListItem from "~/components/DocumentListItem";
 import DocumentSelectionToolbar from "~/components/DocumentSelectionToolbar";
@@ -28,9 +29,12 @@ import Scene from "~/components/Scene";
 import Switch from "~/components/Switch";
 import Text from "~/components/Text";
 import env from "~/env";
+import useCurrentTeam from "~/hooks/useCurrentTeam";
 import usePaginatedRequest from "~/hooks/usePaginatedRequest";
 import useQuery from "~/hooks/useQuery";
 import useStores from "~/hooks/useStores";
+import { streamAI } from "../../../plugins/ee/client/aiStream";
+import { ClientClosedRequestError } from "~/utils/errors";
 import type { PaginationParams, SearchResult } from "~/types";
 import { preventDefault } from "~/utils/events";
 import { searchPath } from "~/utils/routeHelpers";
@@ -40,6 +44,9 @@ import DateFilter from "./components/DateFilter";
 import { DocumentFilter } from "./components/DocumentFilter";
 import DocumentTypeFilter from "./components/DocumentTypeFilter";
 import RecentSearches from "./components/RecentSearches";
+import SearchAnswer, {
+  type SearchAnswerReference,
+} from "./components/SearchAnswer";
 import SearchInput from "./components/SearchInput";
 import { SortInput } from "./components/SortInput";
 import UserFilter from "./components/UserFilter";
@@ -49,6 +56,7 @@ import useMobile from "~/hooks/useMobile";
 function Search() {
   const { t } = useTranslation();
   const { documents, searches, policies } = useStores();
+  const team = useCurrentTeam({ rejectOnEmpty: false });
   const isMobile = useMobile();
 
   // routing
@@ -209,6 +217,83 @@ function Search() {
     limit: Pagination.defaultLimit,
   });
 
+  const aiAnswersEnabled = !!team?.getPreference(TeamPreference.AIAnswers);
+  const [answer, setAnswer] = React.useState<{
+    text: string | null;
+    references: SearchAnswerReference[];
+  } | null>(null);
+  const [answerLoading, setAnswerLoading] = React.useState(false);
+  const [answerError, setAnswerError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!aiAnswersEnabled || !query || titleFilter) {
+      setAnswer(null);
+      setAnswerError(null);
+      setAnswerLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setAnswerLoading(true);
+    setAnswerError(null);
+    setAnswer(null);
+    void (async () => {
+      let text = "";
+      let references: SearchAnswerReference[] = [];
+      try {
+        await streamAI(
+          "/documents.answer",
+          {
+            query,
+            collectionId: collectionId || undefined,
+            documentId: documentId || undefined,
+          },
+          {
+            signal: controller.signal,
+            onEvent: (event) => {
+              if (event.type === "meta" && event.references) {
+                references = event.references;
+                setAnswer({ text: text || null, references });
+              }
+              if (event.type === "delta" && event.text) {
+                text += event.text;
+                setAnswer({ text, references });
+                setAnswerLoading(false);
+              }
+              if (event.type === "done") {
+                text = event.answer ?? text;
+                references = event.references ?? references;
+                setAnswer({
+                  text: text || null,
+                  references,
+                });
+              }
+              if (event.type === "error" && event.message) {
+                throw new Error(event.message);
+              }
+            },
+          }
+        );
+      } catch (err) {
+        if (err instanceof ClientClosedRequestError) {
+          return;
+        }
+        if (!text) {
+          setAnswer(null);
+          setAnswerError(t(errToString(err)));
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setAnswerLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      controller.abort();
+    };
+  }, [aiAnswersEnabled, query, collectionId, documentId, titleFilter, t]);
+
   // Only updatable documents are selectable, matching the per-item checkboxes.
   const itemIds = React.useMemo(
     () =>
@@ -337,7 +422,9 @@ function Search() {
                 ? t("Search in document")
                 : collectionId
                   ? t("Search in collection")
-                  : t("Search")
+                  : aiAnswersEnabled
+                    ? t("Search or ask a question")
+                    : t("Search")
             }…`}
             onKeyDown={handleKeyDown}
             defaultValue={query ?? ""}
@@ -410,7 +497,7 @@ function Search() {
                   </Text>
                 </Centered>
               </Fade>
-            ) : showEmpty ? (
+            ) : showEmpty && !answerLoading && !answer?.text ? (
               <Fade>
                 <Centered column>
                   <Text as="p" type="secondary">
@@ -419,6 +506,16 @@ function Search() {
                 </Centered>
               </Fade>
             ) : null}
+            {(answerLoading || answer || answerError) && query && (
+              <SearchAnswer
+                query={query}
+                loading={answerLoading}
+                error={answerError}
+                text={answer?.text ?? null}
+                references={answer?.references ?? []}
+                scoped={!!collectionId || !!documentId}
+              />
+            )}
             <ModelSelectionProvider
               items={itemIds}
               toolbar={<DocumentSelectionToolbar />}

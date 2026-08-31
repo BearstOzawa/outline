@@ -1,6 +1,7 @@
 import { isArray, sortBy } from "es-toolkit/compat";
 import { action, observable } from "mobx";
 import type { IObservableArray } from "mobx";
+import type Document from "~/models/Document";
 import type Team from "~/models/Team";
 import type User from "~/models/User";
 import type { LazyComponent } from "~/components/LazyLoad";
@@ -15,6 +16,7 @@ export enum Hook {
   Settings = "settings",
   Imports = "imports",
   Icon = "icon",
+  DocumentMeta = "documentMeta",
 }
 
 /**
@@ -46,6 +48,10 @@ type PluginValueMap = {
     action: React.ReactElement;
   };
   [Hook.Icon]: React.ElementType;
+  [Hook.DocumentMeta]: {
+    /** The lazy loaded component rendered under the document meta row. */
+    component: LazyComponent<React.ComponentType<{ document: Document }>>;
+  };
 };
 
 export type Plugin<T extends Hook> = {

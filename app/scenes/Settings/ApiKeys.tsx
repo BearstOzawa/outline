@@ -2,7 +2,7 @@ import type { ColumnSort } from "@tanstack/react-table";
 import { observer } from "mobx-react";
 import { CodeIcon } from "outline-icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslation, Trans } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { useHistory, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Action } from "~/components/Actions";
@@ -119,19 +119,9 @@ function ApiKeys() {
     >
       <Heading>{t("API Keys")}</Heading>
       <Text as="p" type="secondary">
-        <Trans
-          defaults="API keys can be used to authenticate with the API and programatically control
-          your workspace's data. For more details see the <em>developer documentation</em>."
-          components={{
-            em: (
-              <a
-                href="https://www.getoutline.com/developers"
-                target="_blank"
-                rel="noreferrer"
-              />
-            ),
-          }}
-        />
+        {t(
+          "API keys can be used to authenticate with the API and programatically control your workspace's data."
+        )}
       </Text>
       <StickyFilters>
         <InputSearch

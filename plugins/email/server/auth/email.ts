@@ -63,17 +63,6 @@ router.post(
       return;
     }
 
-    // If the user matches an email address associated with an SSO
-    // provider then just forward them directly to that sign-in page
-    if (user.authentications.length) {
-      const authenticationProvider =
-        user.authentications[0].authenticationProvider;
-      ctx.body = {
-        redirect: `${team.url}/auth/${authenticationProvider?.name}`,
-      };
-      return;
-    }
-
     // Generate both a link token and a 6-digit verification code
     const token = preferOTP ? undefined : user.getEmailSigninToken(ctx);
     const verificationCode = preferOTP

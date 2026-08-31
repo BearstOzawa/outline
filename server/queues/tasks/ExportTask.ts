@@ -4,7 +4,11 @@ import { truncate } from "es-toolkit/compat";
 import type { ZipFile } from "yazl";
 import { toError } from "@shared/utils/error";
 import type { NavigationNode } from "@shared/types";
-import { FileOperationState, NotificationEventType } from "@shared/types";
+import {
+  FileOperationFormat,
+  FileOperationState,
+  NotificationEventType,
+} from "@shared/types";
 import { bytesToHumanReadable } from "@shared/utils/files";
 import ExportFailureEmail from "@server/emails/templates/ExportFailureEmail";
 import ExportSuccessEmail from "@server/emails/templates/ExportSuccessEmail";
@@ -30,6 +34,21 @@ import type { WhereOptions } from "sequelize";
 type Props = {
   fileOperationId: string;
 };
+
+function describeExportStorageError(error: unknown): Error {
+  const err = toError(error);
+  const message = err.message || "";
+  if (
+    message.includes("XML parse") ||
+    message.includes("mismatched tags") ||
+    message.includes("Deserialization error")
+  ) {
+    return new Error(
+      "Object storage returned an HTML page instead of a file. Check FILE_STORAGE and AWS_S3_UPLOAD_BUCKET_URL; a reverse proxy may be intercepting S3 requests."
+    );
+  }
+  return err;
+}
 
 export default abstract class ExportTask extends BaseTask<Props> {
   /**
@@ -72,7 +91,10 @@ export default abstract class ExportTask extends BaseTask<Props> {
       const url = await FileStorage.store({
         body: readStream,
         contentLength: stat.size,
-        contentType: "application/zip",
+        contentType:
+          fileOperation.format === FileOperationFormat.PDF
+            ? "application/pdf"
+            : "application/zip",
         key: fileOperation.key,
         acl: "private",
       });
@@ -96,7 +118,7 @@ export default abstract class ExportTask extends BaseTask<Props> {
     } catch (error) {
       await this.updateFileOperation(fileOperation, {
         state: FileOperationState.Error,
-        error: toError(error),
+        error: describeExportStorageError(error),
       });
       if (user.subscribedToEventType(NotificationEventType.ExportCompleted)) {
         await new ExportFailureEmail({

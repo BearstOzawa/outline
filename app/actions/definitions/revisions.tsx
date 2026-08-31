@@ -1,4 +1,5 @@
 import copy from "copy-to-clipboard";
+import { observer } from "mobx-react";
 import {
   LinkIcon,
   RestoreIcon,
@@ -6,9 +7,12 @@ import {
   DownloadIcon,
   ExportIcon,
   PrintIcon,
+  EditIcon,
 } from "outline-icons";
+import * as React from "react";
 import { matchPath } from "react-router-dom";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { ExportContentType } from "@shared/types";
 import { RevisionHelper } from "@shared/utils/RevisionHelper";
 import Revision from "~/models/Revision";
@@ -21,8 +25,12 @@ import {
   createInternalLinkAction,
 } from "~/actions";
 import { RevisionSection } from "~/actions/sections";
-import env from "~/env";
+import ConfirmationDialog from "~/components/ConfirmationDialog";
+import Flex from "~/components/Flex";
+import Input from "~/components/Input";
+
 import history from "~/utils/history";
+import { printPage } from "~/utils/print";
 import {
   documentHistoryPath,
   matchDocumentHistory,
@@ -86,35 +94,124 @@ export const restoreRevision = createInternalLinkAction({
   },
 });
 
+const RenameRevisionDialog = observer(function RenameRevisionDialog({
+  revision,
+  onSubmit,
+}: {
+  revision: Revision;
+  onSubmit: () => void;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = React.useState(revision.name ?? "");
+
+  return (
+    <ConfirmationDialog
+      onSubmit={async () => {
+        revision.name = name.trim() || null;
+        await revision.save();
+        toast.success(t("Revision renamed"));
+        onSubmit();
+      }}
+      submitText={t("Save")}
+      savingText={`${t("Saving")}…`}
+    >
+      <Flex column gap={8}>
+        <Input
+          autoFocus
+          label={t("Name")}
+          value={name}
+          onChange={(ev) => setName(ev.target.value)}
+        />
+      </Flex>
+    </ConfirmationDialog>
+  );
+});
+
+export const renameRevision = createAction({
+  name: ({ t }) => `${t("Rename")}…`,
+  analyticsName: "Rename revision",
+  icon: <EditIcon />,
+  section: RevisionSection,
+  visible: (context) => {
+    const revisionId = getActiveRevisionId(context);
+    if (!revisionId || !context.activeDocumentId) {
+      return false;
+    }
+    const documentAbilities = stores.policies.abilities(
+      context.activeDocumentId
+    );
+    const revisionAbilities = stores.policies.abilities(revisionId);
+    return !!documentAbilities.update && revisionAbilities.update !== false;
+  },
+  perform: (context) => {
+    context.event?.preventDefault();
+    const revisionId = getActiveRevisionId(context);
+    if (!revisionId) {
+      return;
+    }
+
+    const revision = stores.revisions.get(revisionId);
+    if (!revision) {
+      return;
+    }
+
+    stores.dialogs.openModal({
+      title: context.t("Rename"),
+      content: (
+        <RenameRevisionDialog
+          revision={revision}
+          onSubmit={stores.dialogs.closeAllModals}
+        />
+      ),
+    });
+  },
+});
+
 export const deleteRevision = createAction({
   name: ({ t }) => t("Delete"),
   analyticsName: "Delete revision",
   icon: <TrashIcon />,
   section: RevisionSection,
   dangerous: true,
-  visible: ({ activeDocumentId }) =>
-    !!activeDocumentId && stores.policies.abilities(activeDocumentId).update,
-  perform: async ({ t, event, location, activeDocumentId }) => {
+  visible: (context) => {
+    const revisionId = getActiveRevisionId(context);
+    if (!revisionId) {
+      return false;
+    }
+    const abilities = stores.policies.abilities(revisionId);
+    return abilities.delete === true || !!stores.auth.user?.isAdmin;
+  },
+  perform: async ({ t, event, activeDocumentId, ...context }) => {
     event?.preventDefault();
-    if (!activeDocumentId) {
+    const revisionId = getActiveRevisionId(context);
+    if (!revisionId || !activeDocumentId) {
       return;
     }
 
     const document = stores.documents.get(activeDocumentId);
-    if (!document) {
+    const revision = stores.revisions.get(revisionId);
+    if (!document || !revision) {
       return;
     }
 
-    const match = matchPath<{ revisionId: string }>(location.pathname, {
-      path: matchDocumentHistory,
+    stores.dialogs.openModal({
+      title: t("Are you sure you want to delete?"),
+      content: (
+        <ConfirmationDialog
+          danger
+          onSubmit={async () => {
+            await revision.delete();
+            toast.success(t("This version of the document was deleted"));
+            history.push(documentHistoryPath(document));
+          }}
+          savingText={`${t("Deleting")}…`}
+        >
+          {t(
+            "Deleting this version of the document will permanently and irrevocably remove it from the history."
+          )}
+        </ConfirmationDialog>
+      ),
     });
-    const revisionId = match?.params.revisionId;
-    if (revisionId) {
-      const revision = stores.revisions.get(revisionId);
-      await revision?.delete();
-      toast.success(t("This version of the document was deleted"));
-      history.push(documentHistoryPath(document));
-    }
   },
 });
 
@@ -159,29 +256,6 @@ export const downloadRevisionAsHTMLActionFactory = (revisionId: string) =>
     perform: async () => {
       const revision = stores.revisions.get(revisionId);
       await revision?.download(ExportContentType.Html);
-    },
-  });
-
-export const downloadRevisionAsPDFActionFactory = (revisionId: string) =>
-  createAction({
-    name: ({ t }) => t("PDF"),
-    analyticsName: "Download revision as PDF",
-    section: RevisionSection,
-    keywords: "export",
-    icon: <DownloadIcon />,
-    iconInContextMenu: false,
-    visible: ({ activeDocumentId }) =>
-      !!(
-        activeDocumentId &&
-        stores.policies.abilities(activeDocumentId).download &&
-        env.PDF_EXPORT_ENABLED
-      ),
-    perform: ({ t }) => {
-      const id = toast.loading(`${t("Exporting")}…`);
-      const revision = stores.revisions.get(revisionId);
-      return revision
-        ?.download(ExportContentType.Pdf)
-        .finally(() => id && toast.dismiss(id));
     },
   });
 
@@ -231,7 +305,7 @@ export const printRevisionActionFactory = (revisionId: string) =>
     visible: (context) =>
       !!window.print && isViewingRevision(context, revisionId),
     perform: () => {
-      setTimeout(window.print, 0);
+      printPage();
     },
   });
 
@@ -246,7 +320,6 @@ export const exportRevisionActionFactory = (revisionId: string) =>
       downloadRevisionAsMarkdownActionFactory(revisionId),
       downloadRevisionAsHTMLActionFactory(revisionId),
       downloadRevisionAsTextBundleActionFactory(revisionId),
-      downloadRevisionAsPDFActionFactory(revisionId),
       ActionSeparator,
       printRevisionActionFactory(revisionId),
     ],
