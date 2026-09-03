@@ -1,4 +1,3 @@
-import { PassThrough } from "node:stream";
 import type { APIContext } from "@server/types";
 
 type SSEWriter = {
@@ -12,27 +11,30 @@ export function beginSSE(ctx: APIContext): SSEWriter {
   const onClose = () => abort.abort();
   ctx.req.once("close", onClose);
 
+  // Koa only flushes ctx.body after the handler returns, so write the socket
+  // ourselves or the client receives the whole answer at once.
+  ctx.respond = false;
   (ctx as APIContext & { compress?: boolean }).compress = false;
-  ctx.status = 200;
-  ctx.set("Content-Type", "text/event-stream; charset=utf-8");
-  ctx.set("Cache-Control", "no-cache, no-transform");
-  ctx.set("Connection", "keep-alive");
-  ctx.set("X-Accel-Buffering", "no");
-
-  const stream = new PassThrough();
-  ctx.body = stream;
+  ctx.res.socket?.setNoDelay(true);
+  ctx.res.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  ctx.res.flushHeaders?.();
 
   const send = (payload: unknown) => {
-    if (stream.destroyed || abort.signal.aborted) {
+    if (ctx.res.writableEnded || abort.signal.aborted) {
       return;
     }
-    stream.write(`data: ${JSON.stringify(payload)}\n\n`);
+    ctx.res.write(`data: ${JSON.stringify(payload)}\n\n`);
   };
 
   const close = () => {
     ctx.req.off("close", onClose);
-    if (!stream.destroyed) {
-      stream.end();
+    if (!ctx.res.writableEnded) {
+      ctx.res.end();
     }
   };
 

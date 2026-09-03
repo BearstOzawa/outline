@@ -19,6 +19,7 @@ export async function* streamChatCompletion(options: {
     headers: {
       Authorization: `Bearer ${env.AI_API_KEY}`,
       "Content-Type": "application/json",
+      Accept: "text/event-stream",
     },
     body: JSON.stringify({
       model: env.AI_MODEL,
@@ -65,13 +66,16 @@ export async function* streamChatCompletion(options: {
         try {
           const payload = JSON.parse(data) as {
             choices?: {
-              delta?: { content?: string };
+              delta?: { content?: string | null };
+              message?: { content?: string | null };
               text?: string;
             }[];
           };
+          const choice = payload.choices?.[0];
           const piece =
-            payload.choices?.[0]?.delta?.content ??
-            payload.choices?.[0]?.text ??
+            choice?.delta?.content ??
+            choice?.text ??
+            (choice?.delta ? "" : choice?.message?.content) ??
             "";
           if (piece) {
             yield piece;
