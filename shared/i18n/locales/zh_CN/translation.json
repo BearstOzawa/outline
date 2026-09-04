@@ -1948,6 +1948,7 @@
   "What should I do next?": "接下来该做什么？",
   "Ask questions about this document and its child documents.": "针对这篇文档及其子文档提问。",
   "AI is writing…": "AI 正在生成…",
+  "Writing": "输出中",
   "Select some text first": "请先选中一段文字",
   "AI provider returned an empty response": "AI 服务返回了空内容",
   "Send": "发送",

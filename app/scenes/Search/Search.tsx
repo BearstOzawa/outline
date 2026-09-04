@@ -258,7 +258,6 @@ function Search() {
               if (event.type === "delta" && event.text) {
                 text += event.text;
                 setAnswer({ text, references });
-                setAnswerLoading(false);
               }
               if (event.type === "done") {
                 text = event.answer ?? text;

@@ -80,16 +80,36 @@ const Modal: React.FC<Props> = ({
           aria-describedby={undefined}
         >
           {isMobile ? (
-            <Mobile>
-              {sidePanel ? <SidePanel $flush>{sidePanel}</SidePanel> : null}
-              <MobileContent>
-                <Centered onClick={(ev) => ev.stopPropagation()} column>
+            <Mobile $fill={!!height}>
+              {sidePanel && !height ? (
+                <SidePanel $flush>{sidePanel}</SidePanel>
+              ) : null}
+              <MobileContent
+                $fill={!!height}
+                flex={!!height}
+                overflow={height ? "hidden" : undefined}
+              >
+                <Centered
+                  $fill={!!height}
+                  onClick={(ev) => ev.stopPropagation()}
+                  column
+                >
                   <Dialog.Title asChild>
-                    <Text size="xlarge" weight="bold">
-                      {resolvedTitle}
-                    </Text>
+                    {height ? (
+                      <ScreenTitle>{resolvedTitle}</ScreenTitle>
+                    ) : (
+                      <Text size="xlarge" weight="bold">
+                        {resolvedTitle}
+                      </Text>
+                    )}
                   </Dialog.Title>
-                  <ErrorBoundary>{children}</ErrorBoundary>
+                  {height ? (
+                    <Fill>
+                      <ErrorBoundary component="div">{children}</ErrorBoundary>
+                    </Fill>
+                  ) : (
+                    <ErrorBoundary>{children}</ErrorBoundary>
+                  )}
                 </Centered>
               </MobileContent>
               <Close onClick={onClose}>
@@ -171,7 +191,7 @@ const StyledContent = styled(Dialog.Content)`
   outline: none;
 `;
 
-const Mobile = styled.div`
+const Mobile = styled.div<{ $fill?: boolean }>`
   animation: ${fadeAndScaleIn} 250ms ease;
 
   position: absolute;
@@ -181,19 +201,61 @@ const Mobile = styled.div`
   bottom: 0;
   z-index: ${depths.modal};
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  justify-content: ${(props) => (props.$fill ? "stretch" : "flex-start")};
+  align-items: stretch;
   background: ${s("background")};
   outline: none;
+  height: 100%;
+  max-height: 100dvh;
 `;
 
-const MobileContent = styled(Scrollable)`
+const MobileContent = styled(Scrollable)<{ $fill?: boolean }>`
   width: 100%;
   padding: 8vh 12px;
+
+  ${(props) =>
+    props.$fill &&
+    `
+    padding: calc(52px + env(safe-area-inset-top, 0px)) 12px
+      calc(8px + env(safe-area-inset-bottom, 0px));
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+  `}
 
   ${breakpoint("tablet")`
     padding: 13vh 2rem 2rem;
   `};
+`;
+
+const ScreenTitle = styled.h1`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
+const Fill = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+  }
 `;
 
 const DesktopContent = styled(Scrollable)<{ $fill?: boolean }>`
@@ -225,9 +287,10 @@ const Centered = styled(Flex)<{ $fill?: boolean }>`
 const Close = styled(NudeButton)`
   position: absolute;
   display: block;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   right: 0;
   margin: 12px;
+  z-index: 2;
   opacity: 0.75;
   color: ${s("text")};
   width: auto;

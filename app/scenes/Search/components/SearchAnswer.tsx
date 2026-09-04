@@ -57,7 +57,11 @@ export default function SearchAnswer({
           <Mark>
             <SparklesIcon size={16} />
             <Title>
-              {loading ? t("AI is writing…") : t("AI answer")}
+              {loading
+                ? text
+                  ? t("Writing")
+                  : t("AI is writing…")
+                : t("AI answer")}
             </Title>
           </Mark>
         </Tooltip>
@@ -69,7 +73,7 @@ export default function SearchAnswer({
             <Link to={settingsPath("features")}>{t("Go to settings")}</Link>
           </Text>
         )}
-        {text ? <Markdown content={text} /> : null}
+        {text ? <Markdown content={text} streaming={loading} /> : null}
         {loading && !text ? (
           <Typing aria-label={t("AI is writing…")}>
             <i />

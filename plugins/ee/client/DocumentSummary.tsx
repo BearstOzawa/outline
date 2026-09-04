@@ -4,7 +4,7 @@ import { SparklesIcon } from "outline-icons";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import styled, { keyframes } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import useShare from "@shared/hooks/useShare";
 import { s } from "@shared/styles";
 import { TeamPreference } from "@shared/types";
@@ -116,7 +116,11 @@ function DocumentSummary({ document }: { document: Document }) {
         <Mark>
           <SparklesIcon size={16} />
           <Title>
-            {loading ? t("AI is writing…") : t("AI summary")}
+            {loading
+              ? display
+                ? t("Writing")
+                : t("AI is writing…")
+              : t("AI summary")}
           </Title>
         </Mark>
         <Meta>
@@ -139,7 +143,7 @@ function DocumentSummary({ document }: { document: Document }) {
       </Header>
       <Scroll ref={scrollRef}>
         {display ? (
-          <Body>{display}</Body>
+          <Body $streaming={loading}>{display}</Body>
         ) : (
           <Typing aria-label={t("AI is writing…")}>
             <i />
@@ -155,6 +159,11 @@ function DocumentSummary({ document }: { document: Document }) {
 const bounce = keyframes`
   0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
   40% { opacity: 1; transform: translateY(-2px); }
+`;
+
+const blink = keyframes`
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 `;
 
 const Card = styled.div`
@@ -232,13 +241,29 @@ const Scroll = styled.div`
   }
 `;
 
-const Body = styled.div`
+const Body = styled.div<{ $streaming?: boolean }>`
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
   line-height: 1.55;
   font-size: 15px;
   color: ${s("text")};
+
+  ${(props) =>
+    props.$streaming &&
+    css`
+      &::after {
+        content: "";
+        display: inline-block;
+        width: 0.45em;
+        height: 1em;
+        margin-left: 3px;
+        background: ${s("text")};
+        border-radius: 1px;
+        vertical-align: -0.12em;
+        animation: ${blink} 1s steps(1) infinite;
+      }
+    `}
 `;
 
 const Typing = styled.div`

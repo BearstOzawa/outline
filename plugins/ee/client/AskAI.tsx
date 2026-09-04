@@ -1,6 +1,7 @@
 import { observer } from "mobx-react";
 import {
   CloseIcon,
+  HistoryIcon,
   NewDocumentIcon,
   SparklesIcon,
   TrashIcon,
@@ -21,6 +22,7 @@ import { NativeTextarea } from "~/components/Input";
 import NudeButton from "~/components/NudeButton";
 import Text from "~/components/Text";
 import Tooltip from "~/components/Tooltip";
+import useMobile from "~/hooks/useMobile";
 import useStores from "~/hooks/useStores";
 import { client } from "~/utils/ApiClient";
 import { ClientClosedRequestError } from "~/utils/errors";
@@ -40,6 +42,7 @@ type QueuedItem = {
 function AskAI({ document }: { document?: Document }) {
   const { t } = useTranslation();
   const { dialogs } = useStores();
+  const isMobile = useMobile();
   const [sessions, setSessions] = useState<AskAISession[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [messages, setMessages] = useState<AskAIMessage[]>([]);
@@ -178,7 +181,10 @@ function AskAI({ document }: { document?: Document }) {
     queuedRef.current = queuedItems;
     setQueued(queuedItems);
     setQuery("");
-  }, []);
+    if (isMobile) {
+      setHistoryOpen(false);
+    }
+  }, [isMobile]);
 
   const deleteSession = useCallback(
     async (id: string) => {
@@ -532,20 +538,97 @@ function AskAI({ document }: { document?: Document }) {
     [confirmDelete, currentId, historyOpen, loadingById, openSession, rows, t]
   );
 
-  useModalSidePanel(historyNode);
+  useModalSidePanel(isMobile ? null : historyNode);
 
   return (
-    <Shell>
-      <Wrap>
+    <Shell $mobile={isMobile}>
+      {isMobile && historyOpen ? (
+        <Drawer>
+          <HistoryPane $mobile>
+            <HistoryHeader>
+              <Text type="secondary" size="small">
+                {t("Chat history")}
+              </Text>
+              <NudeButton
+                onClick={() => setHistoryOpen(false)}
+                aria-label={t("Collapse")}
+              >
+                <CloseIcon size={20} />
+              </NudeButton>
+            </HistoryHeader>
+            <HistoryList>
+              {rows.length === 0 ? (
+                <Text type="tertiary" size="small">
+                  {t("No previous chats")}
+                </Text>
+              ) : (
+                rows.map((session) => {
+                  const generating = !!loadingById[session.id];
+                  return (
+                    <HistoryRow
+                      key={session.id}
+                      $active={session.id === currentId}
+                    >
+                      <HistoryButton
+                        type="button"
+                        onClick={() => openSession(session)}
+                        title={session.title || t("New chat")}
+                      >
+                        <HistoryTitle>
+                          {session.title || t("New chat")}
+                        </HistoryTitle>
+                        {generating ? (
+                          <HistoryStatus>
+                            <StatusDot />
+                            {t("Generating")}
+                          </HistoryStatus>
+                        ) : null}
+                      </HistoryButton>
+                      <NudeButton
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          confirmDelete(session);
+                        }}
+                        aria-label={t("Delete")}
+                      >
+                        <TrashIcon size={16} />
+                      </NudeButton>
+                    </HistoryRow>
+                  );
+                })
+              )}
+            </HistoryList>
+          </HistoryPane>
+          <Backdrop
+            type="button"
+            aria-label={t("Collapse")}
+            onClick={() => setHistoryOpen(false)}
+          />
+        </Drawer>
+      ) : null}
+      <Wrap $mobile={isMobile}>
       <Toolbar>
-        <Text type="secondary" size="small">
+        <Subtitle type="secondary" size="small">
           {document
             ? t('Ask about "{{ title }}"', {
                 title: document.titleWithDefault,
               })
             : t("Ask questions across the workspace")}
-        </Text>
+        </Subtitle>
         <ToolbarActions>
+          {isMobile ? (
+            <Tooltip content={t("Chat history")}>
+              <Button
+                icon={<HistoryIcon />}
+                onClick={() => setHistoryOpen((open) => !open)}
+                neutral
+                borderOnHover
+                aria-label={t("Chat history")}
+                aria-expanded={historyOpen}
+              />
+            </Tooltip>
+          ) : null}
           <Tooltip content={t("New chat")}>
             <Button
               icon={<NewDocumentIcon />}
@@ -593,7 +676,7 @@ function AskAI({ document }: { document?: Document }) {
 
             {!empty && (
               <Transcript>
-                {messages.map((message) =>
+                {messages.map((message, index) =>
                   message.role === "user" ? (
                     <Turn $role="user" key={message.id}>
                       <Bubble>{message.content}</Bubble>
@@ -603,7 +686,14 @@ function AskAI({ document }: { document?: Document }) {
                       {message.error ? (
                         <Text type="danger">{message.content}</Text>
                       ) : (
-                        <Markdown content={message.content} />
+                        <Markdown
+                          content={message.content}
+                          streaming={
+                            loading &&
+                            index === messages.length - 1 &&
+                            !message.error
+                          }
+                        />
                       )}
                       {message.references && message.references.length > 0 && (
                         <Sources>
@@ -706,13 +796,21 @@ function AskAI({ document }: { document?: Document }) {
                 </Button>
               )}
             </ComposerBox>
-            <Hint>
-              {queued.length > 0
-                ? t("{{ count }} in queue", { count: queued.length })
-                : loading
-                  ? t("Stop generating, or type to queue the next question")
-                  : t("Enter to send, Shift+Enter for a new line")}
-            </Hint>
+            {isMobile ? (
+              queued.length > 0 ? (
+                <Hint>
+                  {t("{{ count }} in queue", { count: queued.length })}
+                </Hint>
+              ) : null
+            ) : (
+              <Hint>
+                {queued.length > 0
+                  ? t("{{ count }} in queue", { count: queued.length })
+                  : loading
+                    ? t("Stop generating, or type to queue the next question")
+                    : t("Enter to send, Shift+Enter for a new line")}
+              </Hint>
+            )}
           </Composer>
         </Main>
       </Workspace>
@@ -726,12 +824,13 @@ const bounce = keyframes`
   40% { opacity: 1; transform: translateY(-2px); }
 `;
 
-const Shell = styled.div`
+const Shell = styled.div<{ $mobile?: boolean }>`
   display: flex;
+  position: relative;
   min-height: 0;
   flex: 1;
   height: 100%;
-  margin: -8px -24px -24px -24px;
+  margin: ${(props) => (props.$mobile ? "0" : "-8px -24px -24px -24px")};
 `;
 
 const Dock = styled.div`
@@ -767,21 +866,37 @@ const Rail = styled.button`
   }
 `;
 
-const HistoryPane = styled.div`
+const HistoryPane = styled.div<{ $mobile?: boolean }>`
   display: flex;
   flex-direction: column;
-  width: 200px;
+  width: ${(props) => (props.$mobile ? "min(84vw, 320px)" : "200px")};
   flex-shrink: 0;
   min-height: 0;
   height: 100%;
-  margin-right: 6px;
+  margin-right: ${(props) => (props.$mobile ? "0" : "6px")};
   background: ${s("modalBackground")};
   box-shadow: ${s("modalShadow")};
-  border-radius: 10px;
+  border-radius: ${(props) => (props.$mobile ? "0" : "10px")};
   overflow: hidden;
 `;
 
-const Wrap = styled.div`
+const Drawer = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+`;
+
+const Backdrop = styled.button`
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: ${s("modalBackdrop")};
+  cursor: var(--pointer);
+`;
+
+const Wrap = styled.div<{ $mobile?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -790,7 +905,8 @@ const Wrap = styled.div`
   min-width: 0;
   min-height: 0;
   flex: 1;
-  padding: 8px 24px 12px 16px;
+  padding: ${(props) =>
+    props.$mobile ? "0 4px 4px" : "8px 24px 12px 16px"};
 `;
 
 const Toolbar = styled.div`
@@ -800,6 +916,13 @@ const Toolbar = styled.div`
   gap: 12px;
   flex-shrink: 0;
   min-height: 32px;
+`;
+
+const Subtitle = styled(Text)`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const ToolbarActions = styled.div`
@@ -951,11 +1074,18 @@ const Suggestions = styled.div`
   justify-content: center;
   gap: 8px;
   margin-top: 12px;
+  width: 100%;
 
   button {
     height: auto;
     white-space: normal;
     text-align: start;
+  }
+
+  @media (max-width: 736px) {
+    button {
+      width: 100%;
+    }
   }
 `;
 
@@ -1080,6 +1210,13 @@ const ComposerBox = styled.div`
     line-height: 1.45;
     max-height: 8lh;
     overflow: auto;
+  }
+
+  @media (max-width: 736px) {
+    textarea {
+      font-size: 16px;
+      max-height: 5lh;
+    }
   }
 `;
 
