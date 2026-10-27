@@ -8,7 +8,7 @@
     "copy:i18n": "mkdir -p ./build/shared/i18n && cp -R ./shared/i18n/locales ./build/shared/i18n",
     "build:i18n": "i18next --silent '{shared,app,server,plugins}/**/*.{ts,tsx}' && yarn copy:i18n",
     "build:server": "node ./build.js",
-    "build": "yarn clean && yarn vite:build && yarn build:i18n && yarn build:server",
+    "build": "yarn clean && yarn build:i18n && yarn vite:build && yarn build:server",
     "start": "node ./build/server/index.js",
     "dev": "NODE_ENV=development yarn concurrently -n api,collaboration  -c \"blue,magenta\" \"node --inspect=0.0.0.0 build/server/index.js --services=cron,collaboration,websockets,admin,web,worker\"",
     "dev:backend": "NODE_ENV=development node ./build.js --watch -- node --inspect=0.0.0.0 build/server/index.js --services=cron,collaboration,websockets,admin,web,worker",

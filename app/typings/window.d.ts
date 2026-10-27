@@ -3,6 +3,9 @@ import type RootStore from "~/stores/RootStore";
 
 declare global {
   interface ImportMeta {
+    /** Build-time version of the translation catalogs for cache invalidation. */
+    readonly env: { readonly VITE_I18N_VERSION: string };
+
     /**
      * A special feature that allows you to get all matching modules starting from some base directory.
      */

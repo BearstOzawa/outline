@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import dotenv from "@dotenvx/dotenvx";
@@ -10,6 +11,27 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default ({ mode }: ConfigEnv) => {
   const env = loadEnvironment();
+  const localesPath = path.resolve("shared/i18n/locales");
+  const catalogHash = crypto.createHash("sha256");
+  const locales = fs
+    .readdirSync(localesPath, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+  for (const locale of locales) {
+    const catalog = JSON.parse(
+      fs.readFileSync(
+        path.join(localesPath, locale, "translation.json"),
+        "utf8"
+      )
+    );
+    catalogHash.update(
+      JSON.stringify(
+        Object.entries(catalog).sort(([a], [b]) => a.localeCompare(b))
+      )
+    );
+  }
+  const catalogVersion = catalogHash.digest("hex").slice(0, 16);
 
   let httpsConfig: ServerOptions["https"] | undefined;
   let host: string | undefined;
@@ -38,6 +60,7 @@ export default ({ mode }: ConfigEnv) => {
     // bundled value from the Vite mode instead so `vite build` always bundles
     // production dependencies.
     define: {
+      "import.meta.env.VITE_I18N_VERSION": JSON.stringify(catalogVersion),
       "process.env.NODE_ENV": JSON.stringify(
         mode === "development" ? "development" : "production"
       ),

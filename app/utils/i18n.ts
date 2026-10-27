@@ -33,7 +33,9 @@ export function initI18n(defaultLanguage = "en_US") {
         // this must match the path defined in routes. It's the path that the
         // frontend UI code will hit to load missing translations.
         loadPath: (locale: string[]) =>
-          cdnPath(`/locales/${unicodeBCP47toCLDR(locale[0])}.json`),
+          cdnPath(
+            `/locales/${unicodeBCP47toCLDR(locale[0])}.json?v=${import.meta.env.VITE_I18N_VERSION}`
+          ),
       },
       interpolation: {
         escapeValue: false,
