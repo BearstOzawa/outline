@@ -51,12 +51,14 @@ function AttributeForm({ attribute, onSubmit }: Props) {
           options:
             type === "list"
               ? options.map((option) => option.trim()).filter(Boolean)
-              : undefined,
+              : null,
         })
       }
       submitText={attribute ? t("Save") : t("New Attribute")}
       savingText={`${t("Saving")}…`}
-      disabled={!name.trim() || (type === "list" && !options.some((o) => o.trim()))}
+      disabled={
+        !name.trim() || (type === "list" && !options.some((o) => o.trim()))
+      }
     >
       <Flex gap={12} column>
         <Input

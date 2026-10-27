@@ -16,7 +16,10 @@ import Text from "~/components/Text";
 import useStores from "~/hooks/useStores";
 import { client } from "~/utils/ApiClient";
 import SettingRow from "~/scenes/Settings/components/SettingRow";
-import AttributeForm, { type Attribute, type AttributeType } from "./AttributeForm";
+import AttributeForm, {
+  type Attribute,
+  type AttributeType,
+} from "./AttributeForm";
 
 function typeLabel(type: AttributeType, t: (key: string) => string) {
   if (type === "text") {
@@ -131,10 +134,16 @@ function AttributesSettings() {
           description={`${typeLabel(attribute.type, t)}${attribute.required ? "" : ` · ${t("Optional")}`}`}
         >
           <Flex gap={4}>
-            <NudeButton onClick={() => openEdit(attribute)} aria-label={t("Edit attribute")}>
+            <NudeButton
+              onClick={() => openEdit(attribute)}
+              aria-label={t("Edit attribute")}
+            >
               <EditIcon />
             </NudeButton>
-            <NudeButton onClick={() => openDelete(attribute)} aria-label={t("Delete")}>
+            <NudeButton
+              onClick={() => openDelete(attribute)}
+              aria-label={t("Delete")}
+            >
               <TrashIcon />
             </NudeButton>
           </Flex>

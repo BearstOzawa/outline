@@ -20,6 +20,7 @@ describe("policies/team", () => {
     expect(abilities.createGroup).toEqual(false);
     expect(abilities.createIntegration).toEqual(false);
     expect(abilities.audit).toEqual(false);
+    expect(abilities.externalGroupSync).toEqual(false);
   });
 
   it("should allow admins to manage", async () => {
@@ -38,6 +39,7 @@ describe("policies/team", () => {
     expect(abilities.createGroup).toBeTruthy();
     expect(abilities.createIntegration).toBeTruthy();
     expect(abilities.audit).toBeTruthy();
+    expect(abilities.externalGroupSync).toBeTruthy();
   });
 
   it("should allow creation on hosted envs", async () => {
@@ -53,6 +55,12 @@ describe("policies/team", () => {
     expect(abilities.createTemplate).toBeTruthy();
     expect(abilities.createGroup).toBeTruthy();
     expect(abilities.createIntegration).toBeTruthy();
+  });
+
+  it("should not allow creation from another team", async () => {
+    const team = await buildTeam({ memberTeamCreate: true });
+    const admin = await buildAdmin();
+    expect(serialize(admin, team).createTeam).toEqual(false);
   });
 
   describe("read template", () => {

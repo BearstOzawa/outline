@@ -6,9 +6,7 @@ declare global {
 }
 
 if (!window.env) {
-  throw new Error(
-    "Config could not be parsed."
-  );
+  throw new Error("Config could not be parsed.");
 }
 
 const env: Record<string, any> & {

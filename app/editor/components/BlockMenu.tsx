@@ -1,7 +1,7 @@
 import { DocumentIcon, ShapesIcon, SparklesIcon } from "outline-icons";
 import { cloneDeep } from "es-toolkit/compat";
 import { observer } from "mobx-react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import Icon from "@shared/components/Icon";
 import type { MenuItem } from "@shared/editor/types";
@@ -19,8 +19,10 @@ import SuggestionsMenuItem from "./SuggestionsMenuItem";
 /**
  * Hook that returns a template menu item with children for inserting template
  * content into the editor, or undefined if no templates are available.
+ *
+ * @param isActive whether the block menu is open, templates load when it is.
  */
-function useTemplateMenuItem(): MenuItem | undefined {
+function useTemplateMenuItem(isActive: boolean): MenuItem | undefined {
   const { t } = useTranslation();
   const user = useCurrentUser({ rejectOnEmpty: false });
   const { documents, templates: templatesStore } = useStores();
@@ -28,6 +30,12 @@ function useTemplateMenuItem(): MenuItem | undefined {
   const documentId = editor.props.id;
   const document = documentId ? documents.get(documentId) : undefined;
   const collectionId = document?.collectionId;
+
+  useEffect(() => {
+    if (isActive && user) {
+      void templatesStore.fetchAllIfNeeded();
+    }
+  }, [isActive, user, templatesStore]);
 
   return useMemo(() => {
     if (!user) {
@@ -48,10 +56,7 @@ function useTemplateMenuItem(): MenuItem | undefined {
 
     const toMenuItem = (template: (typeof allTemplates)[0]): MenuItem => ({
       name: "noop",
-      title: TextHelper.replaceTemplateVariables(
-        template.titleWithDefault,
-        user
-      ),
+      title: TextHelper.replaceTemplateVariables(template.displayTitle, user),
       icon: template.icon ? (
         <Icon
           value={template.icon}
@@ -61,7 +66,7 @@ function useTemplateMenuItem(): MenuItem | undefined {
       ) : (
         <DocumentIcon />
       ),
-      keywords: template.titleWithDefault,
+      keywords: template.displayTitle,
       onClick: () => {
         const data = cloneDeep(template.data);
         ProsemirrorHelper.replaceTemplateVariables(data, user);
@@ -110,7 +115,7 @@ type Props = Omit<SuggestionsMenuProps, "renderMenuItem" | "items"> &
 function BlockMenu(props: Props) {
   const { t } = useTranslation();
   const { elementRef } = useEditor();
-  const templateMenuItem = useTemplateMenuItem();
+  const templateMenuItem = useTemplateMenuItem(props.isActive);
 
   const items = useMemo(() => {
     const baseItems = getMenuItems(t, elementRef);
@@ -141,7 +146,7 @@ function BlockMenu(props: Props) {
     return extras.length ? [...baseItems, ...extras] : baseItems;
   }, [t, elementRef, templateMenuItem]);
 
-  const renderMenuItem = useCallback(
+  const renderMenuItem = useCallback<SuggestionsMenuProps["renderMenuItem"]>(
     (item, _index, options) => (
       <SuggestionsMenuItem
         {...options}

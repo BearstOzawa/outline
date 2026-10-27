@@ -169,22 +169,25 @@ function AskAI({ document }: { document?: Document }) {
     setQuery("");
   }, []);
 
-  const openSession = useCallback((session: AskAISession) => {
-    snapshotView();
-    currentIdRef.current = session.id;
-    setCurrentId(session.id);
-    const cached =
-      messagesBySession.current.get(session.id) ?? session.messages ?? [];
-    messagesRef.current = cached;
-    setMessages(cached);
-    const queuedItems = queuedBySession.current.get(session.id) ?? [];
-    queuedRef.current = queuedItems;
-    setQueued(queuedItems);
-    setQuery("");
-    if (isMobile) {
-      setHistoryOpen(false);
-    }
-  }, [isMobile]);
+  const openSession = useCallback(
+    (session: AskAISession) => {
+      snapshotView();
+      currentIdRef.current = session.id;
+      setCurrentId(session.id);
+      const cached =
+        messagesBySession.current.get(session.id) ?? session.messages ?? [];
+      messagesRef.current = cached;
+      setMessages(cached);
+      const queuedItems = queuedBySession.current.get(session.id) ?? [];
+      queuedRef.current = queuedItems;
+      setQueued(queuedItems);
+      setQuery("");
+      if (isMobile) {
+        setHistoryOpen(false);
+      }
+    },
+    [isMobile]
+  );
 
   const deleteSession = useCallback(
     async (id: string) => {
@@ -262,7 +265,10 @@ function AskAI({ document }: { document?: Document }) {
       messagesBySession.current.get(viewKey) ??
       messagesRef.current;
 
-    if (flightsRef.current.has(viewKey) || (boundId && flightsRef.current.has(boundId))) {
+    if (
+      flightsRef.current.has(viewKey) ||
+      (boundId && flightsRef.current.has(boundId))
+    ) {
       const item = { id: `queue-${Date.now()}`, content: text };
       const next = [...(queuedBySession.current.get(viewKey) ?? []), item];
       queuedBySession.current.set(viewKey, next);
@@ -522,7 +528,7 @@ function AskAI({ document }: { document?: Document }) {
         ) : null}
         <Tooltip
           content={historyOpen ? t("Collapse") : t("Chat history")}
-          placement="left"
+          side="left"
         >
           <Rail
             type="button"
@@ -608,212 +614,211 @@ function AskAI({ document }: { document?: Document }) {
         </Drawer>
       ) : null}
       <Wrap $mobile={isMobile}>
-      <Toolbar>
-        <Subtitle type="secondary" size="small">
-          {document
-            ? t('Ask about "{{ title }}"', {
-                title: document.titleWithDefault,
-              })
-            : t("Ask questions across the workspace")}
-        </Subtitle>
-        <ToolbarActions>
-          {isMobile ? (
-            <Tooltip content={t("Chat history")}>
+        <Toolbar>
+          <Subtitle type="secondary" size="small">
+            {document
+              ? t('Ask about "{{ title }}"', {
+                  title: document.displayTitle,
+                })
+              : t("Ask questions across the workspace")}
+          </Subtitle>
+          <ToolbarActions>
+            {isMobile ? (
+              <Tooltip content={t("Chat history")}>
+                <Button
+                  icon={<HistoryIcon />}
+                  onClick={() => setHistoryOpen((open) => !open)}
+                  neutral
+                  borderOnHover
+                  aria-label={t("Chat history")}
+                  aria-expanded={historyOpen}
+                />
+              </Tooltip>
+            ) : null}
+            <Tooltip content={t("New chat")}>
               <Button
-                icon={<HistoryIcon />}
-                onClick={() => setHistoryOpen((open) => !open)}
+                icon={<NewDocumentIcon />}
+                onClick={reset}
                 neutral
                 borderOnHover
-                aria-label={t("Chat history")}
-                aria-expanded={historyOpen}
+                aria-label={t("New chat")}
               />
             </Tooltip>
-          ) : null}
-          <Tooltip content={t("New chat")}>
-            <Button
-              icon={<NewDocumentIcon />}
-              onClick={reset}
-              neutral
-              borderOnHover
-              aria-label={t("New chat")}
-            />
-          </Tooltip>
-        </ToolbarActions>
-      </Toolbar>
+          </ToolbarActions>
+        </Toolbar>
 
-      <Workspace>
-        <Main>
-          <Body>
-            {empty && (
-              <Empty>
-                <EmptyIcon>
-                  <SparklesIcon size={28} />
-                </EmptyIcon>
-                <Text weight="bold">{t("Ask AI")}</Text>
-                <Text type="secondary" size="small">
-                  {document
-                    ? t(
-                        "Ask questions about this document and its child documents."
-                      )
-                    : t(
-                        "Ask questions across documents in your workspace."
-                      )}
-                </Text>
-                <Suggestions>
-                  {suggestions.map((suggestion) => (
-                    <Button
-                      key={suggestion}
-                      onClick={() => void ask(suggestion)}
-                      neutral
-                      borderOnHover
-                    >
-                      {suggestion}
-                    </Button>
-                  ))}
-                </Suggestions>
-              </Empty>
-            )}
-
-            {!empty && (
-              <Transcript>
-                {messages.map((message, index) =>
-                  message.role === "user" ? (
-                    <Turn $role="user" key={message.id}>
-                      <Bubble>{message.content}</Bubble>
-                    </Turn>
-                  ) : (
-                    <Turn $role="assistant" key={message.id}>
-                      {message.error ? (
-                        <Text type="danger">{message.content}</Text>
-                      ) : (
-                        <Markdown
-                          content={message.content}
-                          streaming={
-                            loading &&
-                            index === messages.length - 1 &&
-                            !message.error
-                          }
-                        />
-                      )}
-                      {message.references && message.references.length > 0 && (
-                        <Sources>
-                          <Text type="secondary" size="xsmall">
-                            {t("Sources")}
-                          </Text>
-                          <SourceList>
-                            {message.references.map((reference) => (
-                              <SourceChip
-                                key={`${reference.id}-${reference.headingId ?? ""}`}
-                                to={reference.url}
-                                title={reference.snippet || reference.title}
-                              >
-                                {reference.title}
-                              </SourceChip>
-                            ))}
-                          </SourceList>
-                        </Sources>
-                      )}
-                    </Turn>
-                  )
-                )}
-                {loading &&
-                  messages[messages.length - 1]?.role !== "assistant" && (
-                  <Turn $role="assistant">
-                    <Typing aria-label={t("AI is writing…")}>
-                      <i />
-                      <i />
-                      <i />
-                    </Typing>
-                  </Turn>
-                )}
-                {queued.map((item) => (
-                  <Turn $role="user" key={item.id}>
-                    <Bubble $queued>
-                      <div>{item.content}</div>
-                      <QueueMeta>
-                        <Text type="tertiary" size="xsmall">
-                          {t("Queued")}
-                        </Text>
-                        <NudeButton
-                          onClick={() => removeQueued(item.id)}
-                          aria-label={t("Remove")}
-                        >
-                          <CloseIcon size={16} />
-                        </NudeButton>
-                      </QueueMeta>
-                    </Bubble>
-                  </Turn>
-                ))}
-                <div ref={bottomRef} />
-              </Transcript>
-            )}
-          </Body>
-
-          <Composer>
-            <ComposerBox>
-              <NativeTextarea
-                autoFocus
-                rows={1}
-                $autoSize
-                $minHeight="2lh"
-                $maxHeight="8lh"
-                value={query}
-                placeholder={
-                  messages.length > 0
-                    ? `${t("Ask a follow-up")}…`
-                    : `${t("Search or ask a question")}…`
-                }
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (
-                    event.key === "Enter" &&
-                    !event.shiftKey &&
-                    !event.nativeEvent.isComposing
-                  ) {
-                    event.preventDefault();
-                    if (loading && !query.trim()) {
-                      stop();
-                      return;
-                    }
-                    void ask(query);
-                  }
-                }}
-              />
-              {loading && !query.trim() ? (
-                <Button onClick={stop} danger>
-                  {t("Stop")}
-                </Button>
-              ) : loading && query.trim() ? (
-                <Button onClick={() => void ask(query)} neutral>
-                  {t("Queue")}
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => void ask(query)}
-                  disabled={!query.trim()}
-                >
-                  {t("Send")}
-                </Button>
+        <Workspace>
+          <Main>
+            <Body>
+              {empty && (
+                <Empty>
+                  <EmptyIcon>
+                    <SparklesIcon size={28} />
+                  </EmptyIcon>
+                  <Text weight="bold">{t("Ask AI")}</Text>
+                  <Text type="secondary" size="small">
+                    {document
+                      ? t(
+                          "Ask questions about this document and its child documents."
+                        )
+                      : t("Ask questions across documents in your workspace.")}
+                  </Text>
+                  <Suggestions>
+                    {suggestions.map((suggestion) => (
+                      <Button
+                        key={suggestion}
+                        onClick={() => void ask(suggestion)}
+                        neutral
+                        borderOnHover
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </Suggestions>
+                </Empty>
               )}
-            </ComposerBox>
-            {isMobile ? (
-              queued.length > 0 ? (
+
+              {!empty && (
+                <Transcript>
+                  {messages.map((message, index) =>
+                    message.role === "user" ? (
+                      <Turn $role="user" key={message.id}>
+                        <Bubble>{message.content}</Bubble>
+                      </Turn>
+                    ) : (
+                      <Turn $role="assistant" key={message.id}>
+                        {message.error ? (
+                          <Text type="danger">{message.content}</Text>
+                        ) : (
+                          <Markdown
+                            content={message.content}
+                            streaming={
+                              loading &&
+                              index === messages.length - 1 &&
+                              !message.error
+                            }
+                          />
+                        )}
+                        {message.references &&
+                          message.references.length > 0 && (
+                            <Sources>
+                              <Text type="secondary" size="xsmall">
+                                {t("Sources")}
+                              </Text>
+                              <SourceList>
+                                {message.references.map((reference) => (
+                                  <SourceChip
+                                    key={`${reference.id}-${reference.headingId ?? ""}`}
+                                    to={reference.url}
+                                    title={reference.snippet || reference.title}
+                                  >
+                                    {reference.title}
+                                  </SourceChip>
+                                ))}
+                              </SourceList>
+                            </Sources>
+                          )}
+                      </Turn>
+                    )
+                  )}
+                  {loading &&
+                    messages[messages.length - 1]?.role !== "assistant" && (
+                      <Turn $role="assistant">
+                        <Typing aria-label={t("AI is writing…")}>
+                          <i />
+                          <i />
+                          <i />
+                        </Typing>
+                      </Turn>
+                    )}
+                  {queued.map((item) => (
+                    <Turn $role="user" key={item.id}>
+                      <Bubble $queued>
+                        <div>{item.content}</div>
+                        <QueueMeta>
+                          <Text type="tertiary" size="xsmall">
+                            {t("Queued")}
+                          </Text>
+                          <NudeButton
+                            onClick={() => removeQueued(item.id)}
+                            aria-label={t("Remove")}
+                          >
+                            <CloseIcon size={16} />
+                          </NudeButton>
+                        </QueueMeta>
+                      </Bubble>
+                    </Turn>
+                  ))}
+                  <div ref={bottomRef} />
+                </Transcript>
+              )}
+            </Body>
+
+            <Composer>
+              <ComposerBox>
+                <NativeTextarea
+                  autoFocus
+                  rows={1}
+                  $autoSize
+                  $minHeight="2lh"
+                  $maxHeight="8lh"
+                  value={query}
+                  placeholder={
+                    messages.length > 0
+                      ? `${t("Ask a follow-up")}…`
+                      : `${t("Search or ask a question")}…`
+                  }
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" &&
+                      !event.shiftKey &&
+                      !event.nativeEvent.isComposing
+                    ) {
+                      event.preventDefault();
+                      if (loading && !query.trim()) {
+                        stop();
+                        return;
+                      }
+                      void ask(query);
+                    }
+                  }}
+                />
+                {loading && !query.trim() ? (
+                  <Button onClick={stop} danger>
+                    {t("Stop")}
+                  </Button>
+                ) : loading && query.trim() ? (
+                  <Button onClick={() => void ask(query)} neutral>
+                    {t("Queue")}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => void ask(query)}
+                    disabled={!query.trim()}
+                  >
+                    {t("Send")}
+                  </Button>
+                )}
+              </ComposerBox>
+              {isMobile ? (
+                queued.length > 0 ? (
+                  <Hint>
+                    {t("{{ count }} in queue", { count: queued.length })}
+                  </Hint>
+                ) : null
+              ) : (
                 <Hint>
-                  {t("{{ count }} in queue", { count: queued.length })}
+                  {queued.length > 0
+                    ? t("{{ count }} in queue", { count: queued.length })
+                    : loading
+                      ? t("Stop generating, or type to queue the next question")
+                      : t("Enter to send, Shift+Enter for a new line")}
                 </Hint>
-              ) : null
-            ) : (
-              <Hint>
-                {queued.length > 0
-                  ? t("{{ count }} in queue", { count: queued.length })
-                  : loading
-                    ? t("Stop generating, or type to queue the next question")
-                    : t("Enter to send, Shift+Enter for a new line")}
-              </Hint>
-            )}
-          </Composer>
-        </Main>
-      </Workspace>
+              )}
+            </Composer>
+          </Main>
+        </Workspace>
       </Wrap>
     </Shell>
   );
@@ -905,8 +910,7 @@ const Wrap = styled.div<{ $mobile?: boolean }>`
   min-width: 0;
   min-height: 0;
   flex: 1;
-  padding: ${(props) =>
-    props.$mobile ? "0 4px 4px" : "8px 24px 12px 16px"};
+  padding: ${(props) => (props.$mobile ? "0 4px 4px" : "8px 24px 12px 16px")};
 `;
 
 const Toolbar = styled.div`

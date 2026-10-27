@@ -4,7 +4,7 @@ export const Translations = () => (
   <>
     <Trans defaults={`New attribute`} />
     <Trans defaults={`Paper size`} />
-    <Trans defaults={`Ask AI "{{question}}"`} />
+    <Trans defaults="Ask AI “{{ question }}”" />
     <Trans defaults={`Are you sure you want to delete?`} />
     <Trans
       defaults={`Deleting this version of the document will permanently and irrevocably remove it from the history.`}
@@ -43,7 +43,7 @@ export const Translations = () => (
       defaults={`In a Confluence space, navigate to <em>Space Settings -> Manage space -> Export space</em> and choose to export as HTML with the "Normal Export" option.`}
     />
     <Trans
-      defaults={`Drag and drop the zip file from Confluence's HTML export option, or click to upload`}
+      defaults={`Drag and drop the zip file from Confluence’s HTML export option, or click to upload`}
     />
     <Trans defaults={`Guests`} />
     <Trans defaults={`New Attribute`} />
@@ -121,15 +121,31 @@ export const Translations = () => (
     <Trans defaults={`Generate AI summary`} />
     <Trans defaults={`Delete chat`} />
     <Trans defaults={`Generating`} />
-    <Trans defaults={`Members can ask questions and get answers from your documents. Used by Ask AI, search, and document summaries.`} />
-    <Trans defaults={`Answer questions with your own documents. Used by Ask AI, search, and summaries.`} />
-    <Trans defaults={`Find related documents by meaning, not just keywords. Helps when a question is phrased differently from the original text.`} />
-    <Trans defaults={`Find the right documents even when the wording doesn't match.`} />
-    <Trans defaults={`Use embeddings to find related documents for AI answers, even when keywords do not match.`} />
-    <Trans defaults={`Use a reranking model to prioritize the most relevant passages for AI answers.`} />
+    <Trans
+      defaults={`Members can ask questions and get answers from your documents. Used by Ask AI, search, and document summaries.`}
+    />
+    <Trans
+      defaults={`Answer questions with your own documents. Used by Ask AI, search, and summaries.`}
+    />
+    <Trans
+      defaults={`Find related documents by meaning, not just keywords. Helps when a question is phrased differently from the original text.`}
+    />
+    <Trans
+      defaults={`Find the right documents even when the wording doesn't match.`}
+    />
+    <Trans
+      defaults={`Use embeddings to find related documents for AI answers, even when keywords do not match.`}
+    />
+    <Trans
+      defaults={`Use a reranking model to prioritize the most relevant passages for AI answers.`}
+    />
     <Trans defaults={`Reranking`} />
-    <Trans defaults={`After finding candidate passages, rank them again and keep the most relevant ones for the answer. Improves quality; needs a rerank model on the server.`} />
-    <Trans defaults={`From what was found, keep the most relevant parts for the answer. More accurate, uses an extra model.`} />
+    <Trans
+      defaults={`After finding candidate passages, rank them again and keep the most relevant ones for the answer. Improves quality; needs a rerank model on the server.`}
+    />
+    <Trans
+      defaults={`From what was found, keep the most relevant parts for the answer. More accurate, uses an extra model.`}
+    />
     <Trans defaults={`Ask questions across documents in your workspace.`} />
     <Trans defaults={`Delete "{{ title }}"? This cannot be undone.`} />
     <Trans defaults={`Could not generate a summary`} />

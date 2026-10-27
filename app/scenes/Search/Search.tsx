@@ -5,9 +5,8 @@ import queryString from "query-string";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useHistory, useLocation, useRouteMatch } from "react-router-dom";
-import { Waypoint } from "react-waypoint";
 import styled from "styled-components";
-import breakpoint from "styled-components-breakpoint";
+import { breakpoint } from "@shared/styles/breakpoint";
 import { Pagination } from "@shared/constants";
 import type { Filter } from "@shared/helpers/FilterHelper";
 import { DURATION_BY_DATE_FILTER } from "@shared/helpers/FilterHelper";
@@ -28,8 +27,8 @@ import RegisterKeyDown from "~/components/RegisterKeyDown";
 import Scene from "~/components/Scene";
 import Switch from "~/components/Switch";
 import Text from "~/components/Text";
-import env from "~/env";
 import useCurrentTeam from "~/hooks/useCurrentTeam";
+import { Waypoint } from "~/components/Waypoint";
 import usePaginatedRequest from "~/hooks/usePaginatedRequest";
 import useQuery from "~/hooks/useQuery";
 import useStores from "~/hooks/useStores";
@@ -543,7 +542,6 @@ function Search() {
                 <Waypoint
                   key={data?.length}
                   onEnter={end || loading ? undefined : next}
-                  debug={env.ENVIRONMENT === "development"}
                 />
               </ResultList>
             </ModelSelectionProvider>

@@ -1,5 +1,5 @@
 import path from "node:path";
-import Router from "koa-router";
+import Router from "@koa/router";
 import { CollectionPermission, UserRole } from "@shared/types";
 import { ValidationError } from "@server/errors";
 import documentCreator from "@server/commands/documentCreator";
@@ -17,7 +17,8 @@ import * as T from "./schema";
 
 const router = new Router();
 
-const SKIP_HTML = /^(index|page-information|search-results|space-tools)\.html$/i;
+const SKIP_HTML =
+  /^(index|page-information|search-results|space-tools)\.html$/i;
 
 router.post(
   "confluence.import",
@@ -45,29 +46,26 @@ router.post(
 
     let tree;
     try {
-      tree = await ZipHelper.toFileTree(
-        handle.path,
-        async (node, entry) => {
-          const ext = path.extname(node.name).toLowerCase();
-          if (ext !== ".html" && ext !== ".htm") {
-            return;
-          }
-          if (SKIP_HTML.test(node.name)) {
-            return;
-          }
-
-          const buffer = await entry.readBuffer(5 * 1024 * 1024);
-          const converted = await DocumentConverter.convert(
-            buffer,
-            node.name,
-            "text/html"
-          );
-          markdownByPath.set(node.pathInZip, {
-            title: converted.title || node.title,
-            text: converted.text,
-          });
+      tree = await ZipHelper.toFileTree(handle.path, async (node, entry) => {
+        const ext = path.extname(node.name).toLowerCase();
+        if (ext !== ".html" && ext !== ".htm") {
+          return;
         }
-      );
+        if (SKIP_HTML.test(node.name)) {
+          return;
+        }
+
+        const buffer = await entry.readBuffer(5 * 1024 * 1024);
+        const converted = await DocumentConverter.convert(
+          buffer,
+          node.name,
+          "text/html"
+        );
+        markdownByPath.set(node.pathInZip, {
+          title: converted.title || node.title,
+          text: converted.text,
+        });
+      });
     } finally {
       await handle.cleanup();
     }

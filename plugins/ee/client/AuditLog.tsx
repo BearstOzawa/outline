@@ -171,9 +171,7 @@ function AuditLog() {
         id: "createdAt",
         header: t("Timestamp"),
         accessor: (event) => event.createdAt,
-        component: (event) => (
-          <Time dateTime={event.createdAt} addSuffix />
-        ),
+        component: (event) => <Time dateTime={event.createdAt} addSuffix />,
         width: "2fr",
       },
       {

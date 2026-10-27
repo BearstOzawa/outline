@@ -1,5 +1,5 @@
 import type { ParameterizedContext, DefaultContext } from "koa";
-import type { IRouterParamContext } from "koa-router";
+import type { RouterContext } from "@koa/router";
 import type { InferAttributes, Model, Transaction } from "sequelize";
 import type { z } from "zod";
 import type {
@@ -9,6 +9,7 @@ import type {
   Client,
   CollectionPermission,
   JSONValue,
+  MentionType,
   UnfurlResourceType,
   ProsemirrorData,
   UnfurlResponse,
@@ -73,6 +74,8 @@ export type AppState = {
   auth: Authentication | Record<string, never>;
   transaction: Transaction;
   pagination: Pagination;
+  /** The teams authorized to receive an inbound webhook. */
+  webhookTeamIds?: string[];
   oauthClient?: OAuthClient;
   oauthIntent?: OAuthIntent;
   oauthState?: OAuthState;
@@ -89,11 +92,12 @@ export type BaseRes = unknown;
 export interface APIContext<
   ReqT = Partial<BaseReq>,
   ResT = BaseRes,
-> extends ParameterizedContext<
-  AppState,
-  DefaultContext & IRouterParamContext<AppState>,
-  ResT
-> {
+> extends RouterContext<AppState, DefaultContext, ResT> {
+  // Router internals are left untyped so that handlers with a narrower context
+  // remain assignable to route middleware.
+  router: never;
+  matched?: never;
+
   /** Typed and validated version of request, consisting of validated body, query, etc. */
   input: ReqT;
 
@@ -160,13 +164,21 @@ export type UserEvent = BaseEvent<User> &
     | {
         name:
           | "users.signin"
-          | "users.signout"
           | "users.update"
           | "users.suspend"
           | "users.activate"
           | "users.delete"
           | "users.invite_accepted";
         userId: string;
+      }
+    | {
+        name: "users.signout";
+        userId: string;
+        data?: {
+          name: string;
+          /** What caused the sign out, absent on events from older versions. */
+          reason?: "manual" | "sso_revoked";
+        };
       }
     | {
         name: "users.create" | "users.promote" | "users.demote";
@@ -241,6 +253,8 @@ export type DocumentEvent = BaseEvent<Document> &
         createdAt: string;
         data?: {
           done: boolean;
+          /** The latest collaborator sequence included in the persisted snapshot. */
+          collaborators?: number;
         };
       }
     | {
@@ -616,12 +630,23 @@ export type Unfurl =
       [x: string]: JSONValue;
     };
 
-export type UnfurlError = { error: string };
+export type UnfurlError = {
+  error: string;
+  /** How long to cache the error for in seconds, defaults to one minute. */
+  cacheExpiry?: number;
+};
 
 export type UnfurlSignature = (
   url: string,
   actor?: User
 ) => Promise<Unfurl | UnfurlError | undefined>;
+
+/**
+ * Recognizes the URL of a resource belonging to the service and returns the
+ * type of mention that represents it, or undefined when the URL is not one the
+ * service can mention.
+ */
+export type MentionSignature = (url: URL) => MentionType | undefined;
 
 export type UninstallSignature = (integration: Integration) => Promise<void>;
 

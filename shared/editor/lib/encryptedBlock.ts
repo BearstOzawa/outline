@@ -38,7 +38,11 @@ function fromBase64(value: string) {
   return new Uint8Array(Buffer.from(value, "base64"));
 }
 
-async function deriveKey(password: string, salt: Uint8Array, iterations: number) {
+async function deriveKey(
+  password: string,
+  salt: Uint8Array,
+  iterations: number
+) {
   const material = await webCrypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),

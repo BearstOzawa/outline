@@ -1,13 +1,18 @@
 import path from "node:path";
 import { glob } from "glob";
-import type Router from "koa-router";
+import type Router from "@koa/router";
 import { isArray, sortBy } from "es-toolkit/compat";
+import type { Concrete } from "@shared/types";
 import type BaseEmail from "@server/emails/templates/BaseEmail";
 import env from "@server/env";
 import Logger from "@server/logging/Logger";
 import type BaseProcessor from "@server/queues/processors/BaseProcessor";
 import type { BaseTask } from "@server/queues/tasks/base/BaseTask";
-import type { UnfurlSignature, UninstallSignature } from "@server/types";
+import type {
+  MentionSignature,
+  UnfurlSignature,
+  UninstallSignature,
+} from "@server/types";
 import type { BaseIssueProvider } from "./BaseIssueProvider";
 import type { GroupSyncProvider } from "./GroupSyncProvider";
 import type { BaseSearchProvider } from "./BaseSearchProvider";
@@ -34,6 +39,7 @@ export enum Hook {
   IssueProvider = "issueProvider",
   Processor = "processor",
   SearchProvider = "searchProvider",
+  MentionProvider = "mentionProvider",
   Task = "task",
   UnfurlProvider = "unfurl",
   Uninstall = "uninstall",
@@ -47,12 +53,13 @@ export enum Hook {
 type PluginValueMap = {
   [Hook.API]: Router;
   [Hook.AuthProvider]: { router: Router | Promise<Router>; id: string };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- typeof BaseEmail<EmailProps> isn't assignable from BaseEmail<Subtype>; plugins register heterogeneous template Props.
-  [Hook.EmailTemplate]: typeof BaseEmail<any>;
+  // oxlint-disable-next-line @typescript-eslint/no-explicit-any -- typeof BaseEmail<EmailProps> isn't assignable from BaseEmail<Subtype>; plugins register heterogeneous template Props.
+  [Hook.EmailTemplate]: Concrete<typeof BaseEmail<any>>;
   [Hook.IssueProvider]: BaseIssueProvider;
-  [Hook.Processor]: typeof BaseProcessor;
+  [Hook.MentionProvider]: MentionSignature;
+  [Hook.Processor]: Concrete<typeof BaseProcessor>;
   [Hook.SearchProvider]: BaseSearchProvider;
-  [Hook.Task]: typeof BaseTask<object>;
+  [Hook.Task]: Concrete<typeof BaseTask<object>>;
   [Hook.Uninstall]: UninstallSignature;
   [Hook.UnfurlProvider]: { unfurl: UnfurlSignature; cacheExpiry: number };
   [Hook.GroupSyncProvider]: { id: string; provider: GroupSyncProvider };
@@ -105,7 +112,9 @@ export class PluginManager {
       Logger.debug(
         "plugins",
         `Plugin(type=${plugin.type}) registered ${
-          "name" in plugin.value ? plugin.value.name : ""
+          "name" in plugin.value && typeof plugin.value.name === "string"
+            ? plugin.value.name
+            : ""
         } ${plugin.description ? `(${plugin.description})` : ""}`
       );
     }

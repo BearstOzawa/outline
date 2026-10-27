@@ -1,4 +1,4 @@
-import { isFQDN } from "class-validator";
+import isFQDN from "validator/lib/isFQDN";
 import { addAttributeOptions } from "sequelize-typescript";
 
 /**
@@ -8,7 +8,7 @@ export default function IsFQDN(target: object, propertyName: string) {
   return addAttributeOptions(target, propertyName, {
     validate: {
       validDomain(value: string) {
-        if (value == null || value === "") {
+        if (value === null || value === undefined || value === "") {
           return;
         }
         if (!isFQDN(value)) {

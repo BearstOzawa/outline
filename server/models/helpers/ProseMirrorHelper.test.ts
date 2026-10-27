@@ -1,3 +1,4 @@
+// @vitest-isolate true
 import { faker } from "@faker-js/faker";
 import { Node } from "prosemirror-model";
 import type { DeepPartial } from "utility-types";
@@ -7,7 +8,7 @@ import type { ProsemirrorData } from "@shared/types";
 import { MentionType } from "@shared/types";
 import { ProsemirrorHelper as SharedProsemirrorHelper } from "@shared/utils/ProsemirrorHelper";
 import { createContext } from "@server/context";
-import { parser, schema } from "@server/editor";
+import { parser, schema, serializer } from "@server/editor";
 import env from "@server/env";
 import { Attachment } from "@server/models";
 import { buildProseMirrorDoc, buildUser } from "@server/test/factories";
@@ -142,7 +143,7 @@ describe("ProsemirrorHelper", () => {
         mentionedParagraph,
       ]);
 
-      const newDoc = await ProsemirrorHelper.processMentions(doc);
+      const newDoc = await ProsemirrorHelper.processMentions(doc, user.teamId);
       expect(newDoc.content?.[1]?.content?.[1].attrs?.label).toEqual("Unknown");
     });
 
@@ -157,7 +158,7 @@ describe("ProsemirrorHelper", () => {
       };
 
       await user.update({
-        name: faker.name.firstName(),
+        name: faker.person.firstName(),
       });
 
       const mentionedParagraph: DeepPartial<ProsemirrorData> = {
@@ -191,13 +192,13 @@ describe("ProsemirrorHelper", () => {
         mentionedParagraph,
       ]);
 
-      const newDoc = await ProsemirrorHelper.processMentions(doc);
+      const newDoc = await ProsemirrorHelper.processMentions(doc, user.teamId);
       expect(newDoc.content?.[1]?.content?.[1].attrs?.label).toEqual(user.name);
     });
 
     it("should handle multiple renamed users", async () => {
       const firstUser = await buildUser();
-      const secondUser = await buildUser();
+      const secondUser = await buildUser({ teamId: firstUser.teamId });
 
       const firstMentionAttrs: MentionAttrs = {
         id: "9a17c1c8-d178-4350-9001-203a73070fcb",
@@ -215,8 +216,8 @@ describe("ProsemirrorHelper", () => {
         modelId: secondUser.id,
       };
 
-      const firstNewName = faker.name.firstName();
-      const secondNewName = faker.name.firstName();
+      const firstNewName = faker.person.firstName();
+      const secondNewName = faker.person.firstName();
 
       await firstUser.update({
         name: firstNewName,
@@ -265,13 +266,42 @@ describe("ProsemirrorHelper", () => {
         mentionedParagraph,
       ]);
 
-      const newDoc = await ProsemirrorHelper.processMentions(doc);
+      const newDoc = await ProsemirrorHelper.processMentions(
+        doc,
+        firstUser.teamId
+      );
       expect(newDoc.content?.[1]?.content?.[1].attrs?.label).toEqual(
         firstNewName
       );
       expect(newDoc.content?.[1]?.content?.[3].attrs?.label).toEqual(
         secondNewName
       );
+    });
+
+    it("should not resolve users from another team", async () => {
+      const user = await buildUser();
+      const otherTeamUser = await buildUser();
+
+      const doc = buildProseMirrorDoc([
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "mention",
+              attrs: {
+                id: "9a17c1c8-d178-4350-9001-203a73070fcb",
+                type: MentionType.User,
+                label: "other.user",
+                actorId: user.id,
+                modelId: otherTeamUser.id,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const newDoc = await ProsemirrorHelper.processMentions(doc, user.teamId);
+      expect(newDoc.content?.[0]?.content?.[0].attrs?.label).toEqual("Unknown");
     });
   });
 
@@ -1054,6 +1084,69 @@ describe("ProsemirrorHelper", () => {
       expect(thirdItem.type.name).toBe("checkbox_item");
       expect(thirdItem.attrs.checked).toBe(true);
       expect(thirdItem.textContent).toBe("Third");
+    });
+
+    it("should convert an @ prefixed GitHub link to an issue mention", () => {
+      const markdown =
+        "Please review @[Fix parser](https://github.com/acme/infra/issues/2)";
+
+      const doc = ProsemirrorHelper.toProsemirror(markdown);
+      const paragraph = doc.content.child(0);
+      const mention = paragraph.content.child(1);
+
+      expect(mention.type.name).toBe("mention");
+      expect(mention.attrs.type).toBe(MentionType.Issue);
+      expect(mention.attrs.href).toBe("https://github.com/acme/infra/issues/2");
+      expect(mention.attrs.label).toBe("Fix parser");
+      expect(paragraph.content.child(0).text).toBe("Please review ");
+    });
+
+    it("should convert an @ prefixed GitHub pull request link", () => {
+      const markdown = "@[Add parser](https://github.com/acme/infra/pull/5)";
+
+      const doc = ProsemirrorHelper.toProsemirror(markdown);
+      const mention = doc.content.child(0).content.child(0);
+
+      expect(mention.attrs.type).toBe(MentionType.PullRequest);
+    });
+
+    it("should convert an @ prefixed link to an unclaimed host to a url mention", () => {
+      const markdown = "@[Example](https://example.com/page)";
+
+      const doc = ProsemirrorHelper.toProsemirror(markdown);
+      const mention = doc.content.child(0).content.child(0);
+
+      expect(mention.attrs.type).toBe(MentionType.URL);
+      expect(mention.attrs.href).toBe("https://example.com/page");
+    });
+
+    it("should keep a link without an @ prefix as a link", () => {
+      const markdown =
+        "Please review [Fix parser](https://github.com/acme/infra/issues/2)";
+
+      const doc = ProsemirrorHelper.toProsemirror(markdown);
+      const paragraph = doc.content.child(0);
+
+      expect(
+        paragraph.content
+          .child(1)
+          .marks.some((mark) => mark.type.name === "link")
+      ).toBe(true);
+    });
+
+    it("should round-trip an external mention through Markdown", () => {
+      const markdown = "@[Fix parser](https://github.com/acme/infra/issues/2)";
+
+      const doc = ProsemirrorHelper.toProsemirror(markdown);
+      const mention = doc.content.child(0).content.child(0);
+
+      expect(mention.type.name).toBe("mention");
+      expect(mention.attrs.type).toBe(MentionType.Issue);
+      // Markdown that leaves Outline carries the url, so it comes back in as a
+      // mention rather than a plain link.
+      expect(serializer.serialize(doc, { commonMark: true }).trim()).toBe(
+        "@[Fix parser](https://github.com/acme/infra/issues/2)"
+      );
     });
   });
 

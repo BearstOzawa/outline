@@ -9,7 +9,6 @@ import {
   LogoutIcon,
   ProfileIcon,
   BrowserIcon,
-  ShapesIcon,
   DraftsIcon,
   ImportIcon,
   SparklesIcon,
@@ -18,14 +17,13 @@ import { TeamPreference } from "@shared/types";
 import { isMac } from "@shared/utils/browser";
 import stores from "~/stores";
 import type SearchQuery from "~/models/SearchQuery";
-import KeyboardShortcuts from "~/scenes/KeyboardShortcuts";
+import KeyboardShortcuts from "~/components/KeyboardShortcuts";
 import {
   createAction,
   createExternalLinkAction,
   createInternalLinkAction,
 } from "~/actions";
 import { NavigationSection, RecentSearchesSection } from "~/actions/sections";
-import Desktop from "~/utils/Desktop";
 import {
   homePath,
   searchPath,
@@ -53,6 +51,7 @@ export const navigateToRecentSearchQueryActionFactory = (
     name: searchQuery.query,
     analyticsName: "Navigate to recent search query",
     icon: <SearchIcon />,
+    visible: ({ isMCP }) => !isMCP,
     to: searchPath({ query: searchQuery.query }),
   });
 
@@ -153,15 +152,6 @@ export const navigateToProfileSettings = createInternalLinkAction({
   iconInContextMenu: false,
   icon: <ProfileIcon />,
   to: settingsPath(),
-});
-
-export const navigateToTemplateSettings = createInternalLinkAction({
-  name: ({ t }) => t("Templates"),
-  analyticsName: "Navigate to template settings",
-  section: NavigationSection,
-  iconInContextMenu: false,
-  icon: <ShapesIcon />,
-  to: settingsPath("templates"),
 });
 
 export const navigateToNotificationSettings = createInternalLinkAction({

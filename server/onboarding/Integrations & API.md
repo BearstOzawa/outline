@@ -3,6 +3,7 @@
 Outline supports many of the most popular tools on the market without any additional settings or configuration. Just paste links to a YouTube video, Figma file, or Google Spreadsheet to get instant live-embeds in your documents.
 
 \
+
 :::info
 Most integrations work by simply pasting a link from a supported service into a document.
 :::

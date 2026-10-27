@@ -18,6 +18,7 @@ import useKeyDown from "~/hooks/useKeyDown";
 import usePolicy from "~/hooks/usePolicy";
 import usePrevious from "~/hooks/usePrevious";
 import useShareDataLoader from "~/hooks/useShareDataLoader";
+import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useStores from "~/hooks/useStores";
 import type { Permission } from "~/types";
 import { documentPath, urlify } from "~/utils/routeHelpers";
@@ -47,6 +48,9 @@ function SharePopover({
 }: Props) {
   const { t } = useTranslation();
   const can = usePolicy(document);
+  const team = useCurrentTeam();
+  const teamCan = usePolicy(team);
+  const inviteRole = teamCan.addGuest ? UserRole.Guest : team.defaultUserRole;
   const { shares } = useStores();
   const share = shares.getByDocumentId(document.id);
   const sharedParent = shares.getByDocumentParents(document);
@@ -152,7 +156,7 @@ function SharePopover({
                   {
                     email: idOrEmail,
                     name: idOrEmail,
-                    role: UserRole.Guest,
+                    role: inviteRole,
                   },
                 ]);
                 user = response[0];
@@ -245,12 +249,13 @@ function SharePopover({
       pendingIds,
       permission,
       t,
+      inviteRole,
       users,
     ]
   );
 
   const handleQuery = React.useCallback(
-    (event) => {
+    (event: React.ChangeEvent<HTMLInputElement>) => {
       showPicker();
       setQuery(event.target.value);
     },

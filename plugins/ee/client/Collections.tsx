@@ -75,7 +75,7 @@ function CollectionsAdmin() {
       limit?: number;
       query?: string;
       sort?: string;
-      direction?: string;
+      direction?: "ASC" | "DESC";
       includeListOnly?: boolean;
     }) =>
       collections.fetchPage({

@@ -71,7 +71,9 @@ class EEPluginEnvironment extends Environment {
    * API key for rerank. Falls back to embedding key, then chat key.
    */
   @IsOptional()
-  public AI_RERANK_API_KEY = this.toOptionalString(environment.AI_RERANK_API_KEY);
+  public AI_RERANK_API_KEY = this.toOptionalString(
+    environment.AI_RERANK_API_KEY
+  );
 
   /**
    * Rerank model id. Leave unset to skip reranking.

@@ -25,19 +25,12 @@ export async function scheduleEmbeddingBackfill(
   const isStart = !options.cursorUpdatedAt && !options.cursorId;
   return new BackfillDocumentEmbeddingsTask().schedule(
     { teamId, ...options },
-    isStart
-      ? { jobId: `backfill-embeddings-${teamId}` }
-      : { delay: 2000 }
+    isStart ? { jobId: `backfill-embeddings-${teamId}` } : { delay: 2000 }
   );
 }
 
 export default class BackfillDocumentEmbeddingsTask extends BaseTask<Props> {
-  public async perform({
-    teamId,
-    verify,
-    cursorUpdatedAt,
-    cursorId,
-  }: Props) {
+  public async perform({ teamId, verify, cursorUpdatedAt, cursorId }: Props) {
     if (!embeddingsAvailable()) {
       return;
     }

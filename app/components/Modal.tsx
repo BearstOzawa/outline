@@ -4,7 +4,7 @@ import { CloseIcon, BackIcon } from "outline-icons";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import breakpoint from "styled-components-breakpoint";
+import { breakpoint } from "@shared/styles/breakpoint";
 import { depths, s, borderRadius } from "@shared/styles";
 import Flex from "~/components/Flex";
 import NudeButton from "~/components/NudeButton";
@@ -71,101 +71,111 @@ const Modal: React.FC<Props> = ({
 
   return (
     <ModalSidePanelContext.Provider value={setSidePanel}>
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <StyledOverlay />
-        <StyledContent
-          onEscapeKeyDown={onClose}
-          onPointerDownOutside={onClose}
-          aria-describedby={undefined}
-        >
-          {isMobile ? (
-            <Mobile $fill={!!height}>
-              {sidePanel && !height ? (
-                <SidePanel $flush>{sidePanel}</SidePanel>
-              ) : null}
-              <MobileContent
-                $fill={!!height}
-                flex={!!height}
-                overflow={height ? "hidden" : undefined}
-              >
+      <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog.Portal>
+          <StyledOverlay />
+          <StyledContent
+            onEscapeKeyDown={onClose}
+            onPointerDownOutside={onClose}
+            aria-describedby={undefined}
+          >
+            {isMobile ? (
+              <Mobile $fill={!!height}>
+                {sidePanel && !height ? (
+                  <SidePanel $flush>{sidePanel}</SidePanel>
+                ) : null}
+                <MobileContent
+                  $fill={!!height}
+                  flex={!!height}
+                  overflow={height ? "hidden" : undefined}
+                >
+                  <Centered
+                    $fill={!!height}
+                    onClick={(ev) => ev.stopPropagation()}
+                    column
+                  >
+                    <Dialog.Title asChild>
+                      {height ? (
+                        <ScreenTitle>{resolvedTitle}</ScreenTitle>
+                      ) : (
+                        <Text size="xlarge" weight="bold">
+                          {resolvedTitle}
+                        </Text>
+                      )}
+                    </Dialog.Title>
+                    {height ? (
+                      <Fill>
+                        <ErrorBoundary component="div">
+                          {children}
+                        </ErrorBoundary>
+                      </Fill>
+                    ) : (
+                      <ErrorBoundary>{children}</ErrorBoundary>
+                    )}
+                  </Centered>
+                </MobileContent>
+                <Close onClick={onClose}>
+                  <CloseIcon size={32} />
+                </Close>
+                <Back onClick={onClose}>
+                  <BackIcon size={32} />
+                  <Text>{t("Back")} </Text>
+                </Back>
+              </Mobile>
+            ) : (
+              <Wrapper $width={width} $height={height}>
+                {sidePanel ? <SidePanel>{sidePanel}</SidePanel> : null}
                 <Centered
                   $fill={!!height}
                   onClick={(ev) => ev.stopPropagation()}
-                  column
-                >
-                  <Dialog.Title asChild>
-                    {height ? (
-                      <ScreenTitle>{resolvedTitle}</ScreenTitle>
-                    ) : (
-                      <Text size="xlarge" weight="bold">
-                        {resolvedTitle}
-                      </Text>
-                    )}
-                  </Dialog.Title>
-                  {height ? (
-                    <Fill>
-                      <ErrorBoundary component="div">{children}</ErrorBoundary>
-                    </Fill>
-                  ) : (
-                    <ErrorBoundary>{children}</ErrorBoundary>
-                  )}
-                </Centered>
-              </MobileContent>
-              <Close onClick={onClose}>
-                <CloseIcon size={32} />
-              </Close>
-              <Back onClick={onClose}>
-                <BackIcon size={32} />
-                <Text>{t("Back")} </Text>
-              </Back>
-            </Mobile>
-          ) : (
-            <Wrapper $width={width} $height={height}>
-              {sidePanel ? <SidePanel>{sidePanel}</SidePanel> : null}
-              <Centered
-                $fill={!!height}
-                onClick={(ev) => ev.stopPropagation()}
-                // maxHeight needed for proper overflow behavior in Safari
-                style={
-                  height
-                    ? { height: "100%", maxHeight: "none" }
-                    : { maxHeight: "65vh" }
-                }
-                column
-                reverse
-              >
-                <DesktopContent
-                  style={style}
-                  $fill={!!height}
-                  flex={!!height}
-                  topShadow={!height}
-                  overflow={
-                    height ? "hidden" : dialog.animating ? "hidden" : undefined
+                  // maxHeight needed for proper overflow behavior in Safari
+                  style={
+                    height
+                      ? { height: "100%", maxHeight: "none" }
+                      : { maxHeight: "65vh" }
                   }
-                  onAnimationEnd={() => dialog.setAnimating(false)}
+                  column
+                  reverse
                 >
-                  <ErrorBoundary component="div">{children}</ErrorBoundary>
-                </DesktopContent>
-                <Header>
-                  <Dialog.Title asChild>
-                    <Text size="large">{resolvedTitle}</Text>
-                  </Dialog.Title>
-                  <Tooltip content={t("Close")} shortcut="Esc">
-                    <NudeButton onClick={onClose} aria-label={t("Close")}>
-                      <CloseIcon />
-                    </NudeButton>
-                  </Tooltip>
-                </Header>
-              </Centered>
-            </Wrapper>
-          )}
-        </StyledContent>
-      </Dialog.Portal>
-    </Dialog.Root>
+                  <DesktopContent
+                    style={style}
+                    $fill={!!height}
+                    flex={!!height}
+                    topShadow={!height}
+                    overflow={
+                      height
+                        ? "hidden"
+                        : dialog.animating
+                          ? "hidden"
+                          : undefined
+                    }
+                    onAnimationEnd={() => dialog.setAnimating(false)}
+                  >
+                    <ErrorBoundary component="div">{children}</ErrorBoundary>
+                  </DesktopContent>
+                  <Header>
+                    <Dialog.Title asChild>
+                      <Text size="large">{resolvedTitle}</Text>
+                    </Dialog.Title>
+                    <Tooltip content={t("Close")} shortcut="Esc">
+                      <NudeButton onClick={onClose} aria-label={t("Close")}>
+                        <CloseIcon />
+                      </NudeButton>
+                    </Tooltip>
+                  </Header>
+                </Centered>
+              </Wrapper>
+            )}
+          </StyledContent>
+        </Dialog.Portal>
+      </Dialog.Root>
     </ModalSidePanelContext.Provider>
   );
 };
+
+// Limit the requested height so that the modal stays within the viewport.
+const maxModalHeight = (value: number | string) =>
+  `min(${typeof value === "number" ? `${value}px` : value}, 90vh)`;
 
 const StyledOverlay = styled(Dialog.Overlay)`
   position: fixed;
@@ -373,8 +383,8 @@ const Wrapper = styled.div<{
   width: 75vw;
   min-width: 350px;
   max-width: ${(props) => props.$width || "450px"};
-  height: ${(props) => props.$height || "auto"};
-  max-height: ${(props) => props.$height || "70vh"};
+  height: ${(props) => (props.$height ? maxModalHeight(props.$height) : "auto")};
+  max-height: ${(props) => (props.$height ? maxModalHeight(props.$height) : "70vh")};
   z-index: ${depths.modal};
   display: flex;
   flex-direction: column;

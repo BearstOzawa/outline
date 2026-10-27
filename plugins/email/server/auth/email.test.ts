@@ -2,7 +2,12 @@ import { faker } from "@faker-js/faker";
 import SigninEmail from "@server/emails/templates/SigninEmail";
 import WelcomeEmail from "@server/emails/templates/WelcomeEmail";
 import { AuthenticationProvider } from "@server/models";
-import { buildUser, buildGuestUser, buildTeam } from "@server/test/factories";
+import {
+  buildUser,
+  buildGuestUser,
+  buildTeam,
+  buildSubdomain,
+} from "@server/test/factories";
 import { getTestServer } from "@server/test/support";
 
 const server = getTestServer();
@@ -29,7 +34,7 @@ describe("email", () => {
 
   it("should send a sign-in email when user already has SSO", async () => {
     const spy = vi.spyOn(SigninEmail.prototype, "schedule");
-    const subdomain = faker.internet.domainWord();
+    const subdomain = buildSubdomain();
     const team = await buildTeam({ subdomain });
     const user = await buildUser({ teamId: team.id });
     const res = await server.post("/auth/email", {
@@ -50,7 +55,7 @@ describe("email", () => {
 
   it("should respond with success and email to be sent when user has SSO but disabled", async () => {
     const spy = vi.spyOn(SigninEmail.prototype, "schedule");
-    const subdomain = faker.internet.domainWord();
+    const subdomain = buildSubdomain();
     const team = await buildTeam({ subdomain });
     const user = await buildUser({ teamId: team.id });
 
@@ -85,7 +90,7 @@ describe("email", () => {
   it("should not send email when user is on another subdomain but respond with success", async () => {
     const user = await buildUser();
     const spy = vi.spyOn(WelcomeEmail.prototype, "schedule");
-    const subdomain = faker.internet.domainWord();
+    const subdomain = buildSubdomain();
     await buildTeam({ subdomain });
     const res = await server.post("/auth/email", {
       body: {
@@ -105,7 +110,7 @@ describe("email", () => {
 
   it("should respond with success and email to be sent when user is not SSO enabled", async () => {
     const spy = vi.spyOn(SigninEmail.prototype, "schedule");
-    const subdomain = faker.internet.domainWord();
+    const subdomain = buildSubdomain();
     const team = await buildTeam({ subdomain });
     const user = await buildGuestUser({
       teamId: team.id,
@@ -127,7 +132,7 @@ describe("email", () => {
 
   it("should respond with success regardless of whether successful to prevent crawling email logins", async () => {
     const spy = vi.spyOn(WelcomeEmail.prototype, "schedule");
-    const subdomain = faker.internet.domainWord();
+    const subdomain = buildSubdomain();
     await buildTeam({ subdomain });
     const res = await server.post("/auth/email", {
       body: {
@@ -148,7 +153,7 @@ describe("email", () => {
     it("should default to current subdomain with SSO", async () => {
       const spy = vi.spyOn(SigninEmail.prototype, "schedule");
       const email = "sso-user@example.org";
-      const subdomain = faker.internet.domainWord();
+      const subdomain = buildSubdomain();
       const team = await buildTeam({
         subdomain,
       });
@@ -178,7 +183,7 @@ describe("email", () => {
     it("should default to current subdomain with guest email", async () => {
       const spy = vi.spyOn(SigninEmail.prototype, "schedule");
       const email = "guest-user@example.org";
-      const subdomain = faker.internet.domainWord();
+      const subdomain = buildSubdomain();
       const team = await buildTeam({
         subdomain,
       });

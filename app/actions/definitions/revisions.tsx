@@ -37,7 +37,10 @@ import {
   urlify,
 } from "~/utils/routeHelpers";
 
-function getActiveRevisionId({ location, getActiveModel }: ActionContext) {
+function getActiveRevisionId({
+  location,
+  getActiveModel,
+}: Pick<ActionContext, "location" | "getActiveModel">) {
   const match = matchPath<{ revisionId: string }>(location.pathname, {
     path: matchDocumentHistory,
   });
@@ -202,7 +205,9 @@ export const deleteRevision = createAction({
           onSubmit={async () => {
             await revision.delete();
             toast.success(t("This version of the document was deleted"));
-            history.push(documentHistoryPath(document));
+            history.push(documentHistoryPath(document), {
+              sidebarContext: context.sidebarContext,
+            });
           }}
           savingText={`${t("Deleting")}…`}
         >

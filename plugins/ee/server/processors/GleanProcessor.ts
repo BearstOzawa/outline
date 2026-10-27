@@ -75,7 +75,7 @@ export default class GleanProcessor extends BaseProcessor {
         datasource,
         object: {
           id: document.id,
-          title: document.titleWithDefault,
+          title: document.displayTitle,
           body: {
             mimeType: "text/plain",
             textContent: (document.text || "").slice(0, 100000),

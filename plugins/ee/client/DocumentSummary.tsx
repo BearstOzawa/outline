@@ -26,9 +26,7 @@ function DocumentSummary({ document }: { document: Document }) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const canGenerate =
-    !shareId &&
-    !!can.update &&
-    !!team?.getPreference(TeamPreference.AIAnswers);
+    !shareId && !!can.update && !!team?.getPreference(TeamPreference.AIAnswers);
   const display = loading && draft ? draft : document.summary;
 
   const generate = async () => {

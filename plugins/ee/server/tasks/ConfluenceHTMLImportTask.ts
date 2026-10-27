@@ -8,7 +8,8 @@ import type { ZipTreeNode } from "@server/utils/ZipHelper";
 
 type Service = IntegrationService.Markdown | IntegrationService.Confluence;
 
-const SKIP_HTML = /^(index|page-information|search-results|space-tools)\.html$/i;
+const SKIP_HTML =
+  /^(index|page-information|search-results|space-tools)\.html$/i;
 
 export default class ConfluenceHTMLImportTask extends MarkdownAPIImportTask {
   protected async scheduleNextTask(

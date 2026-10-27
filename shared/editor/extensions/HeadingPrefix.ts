@@ -28,12 +28,14 @@ export class HeadingPrefixHelper {
    *
    * @param counters the count at each heading depth, ordered from the outermost level.
    * @param style the prefix style to format the counters with.
-   * @returns the formatted label, for example "1.a.i".
+   * @returns the formatted label, for example "1.a.i", or "1." for a single
+   * counter.
    */
   public static format(counters: number[], style: HeadingPrefixStyle): string {
-    return counters
+    const label = counters
       .map((count, depth) => formatCounter(count, depth, style))
       .join(".");
+    return counters.length === 1 ? `${label}.` : label;
   }
 
   /**
@@ -44,7 +46,7 @@ export class HeadingPrefixHelper {
    * @param style the prefix style to format the labels with.
    * @param options when `indented` is set the surrounding display already
    * communicates hierarchy through indentation, so Outline-style labels show
-   * only the counter for their own level, for example "A" instead of "I.A".
+   * only the counter for their own level, for example "A." instead of "I.A".
    * @returns a label for each input level, for example "1.a.i".
    */
   public static labels(
@@ -72,11 +74,11 @@ export class HeadingPrefixHelper {
       const counters = stack.map((item) => item.count);
       labels.push(
         options?.indented && style === HeadingPrefixStyle.Outline
-          ? formatCounter(
+          ? `${formatCounter(
               counters[counters.length - 1],
               counters.length - 1,
               style
-            )
+            )}.`
           : HeadingPrefixHelper.format(counters, style)
       );
     }
@@ -183,6 +185,40 @@ export class HeadingPrefixHelper {
     };
 
     return new Slice(inject(slice.content), slice.openStart, slice.openEnd);
+  }
+
+  /**
+   * Adds the prefix labels to the headings of a rendered document, matching
+   * the numbering displayed in the editor. Headings inside tables are skipped.
+   *
+   * @param container the element that holds the rendered document.
+   * @param doc the document the container was rendered from.
+   * @param style the prefix style to format the labels with.
+   */
+  public static applyToDOM(
+    container: Element,
+    doc: ProsemirrorNode,
+    style: HeadingPrefixStyle
+  ): void {
+    if (style === HeadingPrefixStyle.None) {
+      return;
+    }
+
+    const headings = HeadingPrefixHelper.collectHeadings(doc);
+    const queue = HeadingPrefixHelper.labels(
+      headings.map((heading) => heading.level),
+      style
+    );
+
+    container.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach((heading) => {
+      if (heading.closest("table")) {
+        return;
+      }
+      const label = queue.shift();
+      if (label !== undefined) {
+        heading.setAttribute("data-heading-prefix", label);
+      }
+    });
   }
 
   /**

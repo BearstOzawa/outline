@@ -18,6 +18,7 @@ import useKeyDown from "~/hooks/useKeyDown";
 import usePolicy from "~/hooks/usePolicy";
 import usePrevious from "~/hooks/usePrevious";
 import useShareDataLoader from "~/hooks/useShareDataLoader";
+import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useStores from "~/hooks/useStores";
 import type { Permission } from "~/types";
 import { collectionPath, urlify } from "~/utils/routeHelpers";
@@ -52,6 +53,9 @@ function SharePopover({
   const loading = externalLoading ?? internalLoading;
   const { t } = useTranslation();
   const can = usePolicy(collection);
+  const team = useCurrentTeam();
+  const teamCan = usePolicy(team);
+  const inviteRole = teamCan.addGuest ? UserRole.Guest : team.defaultUserRole;
   const [query, setQuery] = React.useState("");
   const [picker, showPicker, hidePicker] = useBoolean();
   const [hasRendered, setHasRendered] = React.useState(visible);
@@ -135,7 +139,7 @@ function SharePopover({
   }, [pendingIds, prevPendingIds]);
 
   const handleQuery = React.useCallback(
-    (event) => {
+    (event: React.ChangeEvent<HTMLInputElement>) => {
       showPicker();
       setQuery(event.target.value);
     },
@@ -205,7 +209,7 @@ function SharePopover({
                   {
                     email: idOrEmail,
                     name: idOrEmail,
-                    role: UserRole.Guest,
+                    role: inviteRole,
                   },
                 ]);
                 user = response[0];
@@ -293,6 +297,7 @@ function SharePopover({
       pendingIds,
       permission,
       t,
+      inviteRole,
       users,
     ]
   );
@@ -359,7 +364,7 @@ function SharePopover({
 
   return (
     <Wrapper ref={wrapperRef} tabIndex={-1}>
-      {can.update && (
+      {can.manageUsers && (
         <SearchInput
           ref={searchInputRef}
           onChange={handleQuery}

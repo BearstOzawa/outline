@@ -91,7 +91,7 @@ export async function indexDocument(document: Document) {
     return;
   }
 
-  const title = document.titleWithDefault;
+  const title = document.displayTitle;
   const body = documentBody(document);
   const hash = contentHash(env.AI_EMBEDDING_MODEL ?? "", title, body);
   const existing = await DocumentEmbedding.findOne({

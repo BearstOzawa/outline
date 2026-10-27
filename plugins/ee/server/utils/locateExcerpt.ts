@@ -11,11 +11,7 @@ function normalize(text: string) {
   return text.replace(/\s+/g, " ").trim();
 }
 
-function buildSourceUrl(
-  path: string,
-  headingId?: string,
-  snippet?: string
-) {
+function buildSourceUrl(path: string, headingId?: string, snippet?: string) {
   const query = snippet ? `?q=${encodeURIComponent(snippet)}` : "";
   const hash = headingId ? `#${headingId}` : "";
   return `${path}${query}${hash}`;

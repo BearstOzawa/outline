@@ -1,4 +1,8 @@
-import Router from "koa-router";
+import {
+  documentContextText,
+  readableDocumentTree,
+} from "../utils/documentContext";
+import Router from "@koa/router";
 import { EmptyResultError, Op } from "sequelize";
 import { TeamPreference } from "@shared/types";
 import { ValidationError } from "@server/errors";
@@ -65,36 +69,6 @@ function excerpt(text: string, max = 1800) {
   return text.replace(/\s+/g, " ").trim().slice(0, max);
 }
 
-async function documentsInTree(
-  root: Document,
-  teamId: string,
-  limit = 12
-): Promise<Document[]> {
-  const collected: Document[] = [root];
-  let frontier = [root.id];
-
-  while (frontier.length && collected.length < limit) {
-    const children = await Document.findAll({
-      where: {
-        teamId,
-        parentDocumentId: { [Op.in]: frontier },
-      },
-    });
-    if (children.length === 0) {
-      break;
-    }
-    for (const child of children) {
-      if (collected.length >= limit) {
-        break;
-      }
-      collected.push(child);
-    }
-    frontier = children.map((child) => child.id);
-  }
-
-  return collected;
-}
-
 async function keywordHits(user: User, query: string, collectionId?: string) {
   const filter = collectionId
     ? {
@@ -128,7 +102,9 @@ async function recentReadableDocuments(user: User, limit = 8) {
     order: [["updatedAt", "DESC"]],
     limit: 20,
   });
-  return documents.filter((document) => can(user, "read", document)).slice(0, limit);
+  return documents
+    .filter((document) => can(user, "read", document))
+    .slice(0, limit);
 }
 
 async function loadReadableDocuments(user: User, ids: string[]) {
@@ -163,7 +139,7 @@ function pushExcerpt(
     const located = sourceUrlFor(document, text || context || "");
     references.push({
       id: document.id,
-      title: document.titleWithDefault,
+      title: document.displayTitle,
       url: located.url,
       headingId: located.headingId,
       snippet: located.snippet,
@@ -171,7 +147,7 @@ function pushExcerpt(
     });
   }
   excerpts.push(
-    `[${references.findIndex((item) => item.id === document.id) + 1}] ${document.titleWithDefault}\n${body}`
+    `[${references.findIndex((item) => item.id === document.id) + 1}] ${document.displayTitle}\n${body}`
   );
 }
 
@@ -285,187 +261,196 @@ export function registerDocumentAIRoutes(target: Router) {
   );
 
   async function answerDocument(ctx: APIContext<T.DocumentsAnswerReq>) {
-      const { query, collectionId, documentId, history } = ctx.input.body;
-      const { user } = ctx.state.auth;
-      Logger.info("ai", "documents.answer", {
-        documentId,
-        userId: user.id,
+    const { query, collectionId, documentId, history } = ctx.input.body;
+    const { user } = ctx.state.auth;
+    Logger.info("plugins", "documents.answer", {
+      documentId,
+      userId: user.id,
+    });
+
+    authorize(user, "read", user.team);
+
+    if (!user.team.getPreference(TeamPreference.AIAnswers)) {
+      throw ValidationError("AI answers are disabled for this workspace");
+    }
+
+    if (!env.AI_API_KEY) {
+      throw ValidationError(
+        "AI answers are not configured. Set AI_API_KEY (or XAI_API_KEY) on the server."
+      );
+    }
+
+    const references: Reference[] = [];
+    const excerpts: string[] = [];
+    const vectorEnabled =
+      !!user.team.getPreference(TeamPreference.AIVectorSearch) &&
+      embeddingsAvailable();
+    const rerankEnabled =
+      !!user.team.getPreference(TeamPreference.AIRerank) && rerankAvailable();
+    let indexed = false;
+    try {
+      indexed = vectorEnabled && (await teamHasEmbeddings(user.teamId));
+    } catch {
+      indexed = false;
+    }
+
+    if (!indexed && vectorEnabled) {
+      await scheduleEmbeddingBackfill(user.teamId).catch(() => undefined);
+    }
+
+    if (documentId) {
+      const root = await documentLoader({
+        id: documentId,
+        user,
       });
+      const tree = await readableDocumentTree(root, user);
+      const { hits } = indexed
+        ? await vectorContext(user, query, {
+            documentIds: tree.map((document) => document.id),
+            limit: rerankEnabled ? 24 : 12,
+          }).catch(() => ({ hits: [] as EmbeddingHit[], usedVector: false }))
+        : { hits: [] };
+      const documentsById = new Map(
+        tree.map((document) => [document.id, document])
+      );
 
-      authorize(user, "read", user.team);
-
-      if (!user.team.getPreference(TeamPreference.AIAnswers)) {
-        throw ValidationError("AI answers are disabled for this workspace");
+      for (const hit of hits) {
+        const document = documentsById.get(hit.documentId);
+        if (!document) {
+          continue;
+        }
+        pushExcerpt(references, excerpts, document, hit.content);
       }
 
-      if (!env.AI_API_KEY) {
-        throw ValidationError(
-          "AI answers are not configured. Set AI_API_KEY (or XAI_API_KEY) on the server."
-        );
+      if (references.length === 0) {
+        for (const document of tree) {
+          pushExcerpt(
+            references,
+            excerpts,
+            document,
+            documentContextText(document) || ""
+          );
+        }
+      }
+    } else {
+      const search = await keywordHits(user, query, collectionId);
+      const keywordIds = search.results.map((result) => result.document.id);
+      const { hits, usedVector } = indexed
+        ? await vectorContext(user, query, {
+            collectionId,
+            limit: rerankEnabled ? 24 : 12,
+          }).catch(() => ({ hits: [] as EmbeddingHit[], usedVector: false }))
+        : { hits: [], usedVector: false };
+
+      const vectorIds = hits.map((hit) => hit.documentId);
+      const documents = await loadReadableDocuments(user, [
+        ...vectorIds,
+        ...keywordIds,
+      ]);
+      const documentsById = new Map(
+        documents.map((document) => [document.id, document])
+      );
+
+      for (const hit of hits) {
+        const document = documentsById.get(hit.documentId);
+        if (!document) {
+          continue;
+        }
+        pushExcerpt(references, excerpts, document, hit.content);
       }
 
-      const references: Reference[] = [];
-      const excerpts: string[] = [];
-      const vectorEnabled =
-        !!user.team.getPreference(TeamPreference.AIVectorSearch) &&
-        embeddingsAvailable();
-      const rerankEnabled =
-        !!user.team.getPreference(TeamPreference.AIRerank) &&
-        rerankAvailable();
-      let indexed = false;
-      try {
-        indexed = vectorEnabled && (await teamHasEmbeddings(user.teamId));
-      } catch {
-        indexed = false;
-      }
-
-      if (!indexed && vectorEnabled) {
-        await scheduleEmbeddingBackfill(user.teamId).catch(() => undefined);
-      }
-
-      if (documentId) {
-        const root = await documentLoader({
-          id: documentId,
-          user,
-        });
-        const tree = await documentsInTree(root, user.teamId);
-        const { hits } = indexed
-          ? await vectorContext(user, query, {
-              documentIds: tree.map((document) => document.id),
-              limit: rerankEnabled ? 24 : 12,
-            }).catch(() => ({ hits: [] as EmbeddingHit[], usedVector: false }))
-          : { hits: [] };
-        const documentsById = new Map(
-          tree.map((document) => [document.id, document])
-        );
-
-        for (const hit of hits) {
-          const document = documentsById.get(hit.documentId);
+      if (!usedVector || references.length < 3) {
+        for (const result of search.results) {
+          const document = documentsById.get(result.document.id);
           if (!document) {
             continue;
           }
-          pushExcerpt(references, excerpts, document, hit.content);
-        }
-
-        if (references.length === 0) {
-          for (const document of tree) {
-            pushExcerpt(references, excerpts, document, document.text || "");
-          }
-        }
-      } else {
-        const search = await keywordHits(user, query, collectionId);
-        const keywordIds = search.results.map((result) => result.document.id);
-        const { hits, usedVector } = indexed
-          ? await vectorContext(user, query, {
-              collectionId,
-              limit: rerankEnabled ? 24 : 12,
-            }).catch(() => ({ hits: [] as EmbeddingHit[], usedVector: false }))
-          : { hits: [], usedVector: false };
-
-        const vectorIds = hits.map((hit) => hit.documentId);
-        const documents = await loadReadableDocuments(user, [
-          ...vectorIds,
-          ...keywordIds,
-        ]);
-        const documentsById = new Map(
-          documents.map((document) => [document.id, document])
-        );
-
-        for (const hit of hits) {
-          const document = documentsById.get(hit.documentId);
-          if (!document) {
-            continue;
-          }
-          pushExcerpt(references, excerpts, document, hit.content);
-        }
-
-        if (!usedVector || references.length < 3) {
-          for (const result of search.results) {
-            const document = documentsById.get(result.document.id);
-            if (!document) {
-              continue;
-            }
-            pushExcerpt(
-              references,
-              excerpts,
-              document,
-              document.text || result.context || "",
-              result.context
-            );
-            if (excerpts.length >= 24) {
-              break;
-            }
-          }
-        }
-
-        if (references.length === 0) {
-          const recent = await recentReadableDocuments(user);
-          for (const document of recent) {
-            pushExcerpt(references, excerpts, document, document.text || "");
+          pushExcerpt(
+            references,
+            excerpts,
+            document,
+            documentContextText(document) || result.context || "",
+            result.context
+          );
+          if (excerpts.length >= 24) {
+            break;
           }
         }
       }
 
       if (references.length === 0) {
-        const sse = beginSSE(ctx);
-        sse.send({ type: "done", answer: null, references: [] });
-        sse.close();
-        return;
+        const recent = await recentReadableDocuments(user);
+        for (const document of recent) {
+          pushExcerpt(
+            references,
+            excerpts,
+            document,
+            documentContextText(document) || ""
+          );
+        }
       }
+    }
 
-      const ranked = await maybeRerank(
-        query,
-        excerpts,
-        references,
-        rerankEnabled
-      );
-      const context = ranked.excerpts.slice(0, 8).join("\n\n");
-      const cited = ranked.references;
-      const prior = (history ?? []).slice(-8).map((message) => ({
-        role: message.role as "user" | "assistant",
-        content: message.content,
-      }));
-
+    if (references.length === 0) {
       const sse = beginSSE(ctx);
-      sse.send({ type: "meta", references: cited });
+      sse.send({ type: "done", answer: null, references: [] });
+      sse.close();
+      return;
+    }
 
-      let answer = "";
-      try {
-        for await (const piece of streamChatCompletion({
-          temperature: 0.2,
-          signal: sse.signal,
-          messages: [
-            {
-              role: "system",
-              content: documentId
-                ? "You answer questions using only the provided document and its child documents. Reply in the same language as the question. Reply in GitHub-flavored markdown: short paragraphs, headings, lists, and fenced code when useful. Lead with a direct answer, then supporting detail. Cite sources as [n] matching the numbered excerpts. If the documents do not contain the answer, say so clearly."
-                : "You answer questions using only the provided workspace documents. Reply in the same language as the question. Reply in GitHub-flavored markdown: short paragraphs, headings, lists, and fenced code when useful. Lead with a direct answer, then supporting detail. Cite sources as [n] matching the numbered excerpts. If the documents do not contain the answer, say so clearly.",
-            },
-            ...prior,
-            {
-              role: "user",
-              content: `Question: ${query}\n\nDocuments:\n${context}`,
-            },
-          ],
-        })) {
-          answer += piece;
-          sse.send({ type: "delta", text: piece });
-        }
-        const final = answer.trim();
-        sse.send({ type: "done", answer: final, references: cited });
-      } catch (error) {
-        if (!sse.signal.aborted) {
-          sse.send({
-            type: "error",
-            message:
-              error instanceof Error
-                ? error.message
-                : "AI provider request failed",
-          });
-        }
-      } finally {
-        sse.close();
+    const ranked = await maybeRerank(
+      query,
+      excerpts,
+      references,
+      rerankEnabled
+    );
+    const context = ranked.excerpts.slice(0, 8).join("\n\n");
+    const cited = ranked.references;
+    const prior = (history ?? []).slice(-8).map((message) => ({
+      role: message.role as "user" | "assistant",
+      content: message.content,
+    }));
+
+    const sse = beginSSE(ctx);
+    sse.send({ type: "meta", references: cited });
+
+    let answer = "";
+    try {
+      for await (const piece of streamChatCompletion({
+        temperature: 0.2,
+        signal: sse.signal,
+        messages: [
+          {
+            role: "system",
+            content: documentId
+              ? "You answer questions using only the provided document and its child documents. Reply in the same language as the question. Reply in GitHub-flavored markdown: short paragraphs, headings, lists, and fenced code when useful. Lead with a direct answer, then supporting detail. Cite sources as [n] matching the numbered excerpts. If the documents do not contain the answer, say so clearly."
+              : "You answer questions using only the provided workspace documents. Reply in the same language as the question. Reply in GitHub-flavored markdown: short paragraphs, headings, lists, and fenced code when useful. Lead with a direct answer, then supporting detail. Cite sources as [n] matching the numbered excerpts. If the documents do not contain the answer, say so clearly.",
+          },
+          ...prior,
+          {
+            role: "user",
+            content: `Question: ${query}\n\nDocuments:\n${context}`,
+          },
+        ],
+      })) {
+        answer += piece;
+        sse.send({ type: "delta", text: piece });
       }
+      const final = answer.trim();
+      sse.send({ type: "done", answer: final, references: cited });
+    } catch (error) {
+      if (!sse.signal.aborted) {
+        sse.send({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "AI provider request failed",
+        });
+      }
+    } finally {
+      sse.close();
+    }
   }
 
   const COMPLETE_PROMPTS: Record<
@@ -516,7 +501,7 @@ export function registerDocumentAIRoutes(target: Router) {
           user,
         });
         authorize(user, "update", document);
-        title = document.titleWithDefault;
+        title = document.displayTitle;
       }
 
       const sse = beginSSE(ctx);

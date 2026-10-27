@@ -1,6 +1,6 @@
 import passport from "@outlinewiki/koa-passport";
 import { Strategy as SamlStrategy } from "@node-saml/passport-saml";
-import Router from "koa-router";
+import Router from "@koa/router";
 import type { Request } from "koa";
 
 import { slugifyDomain } from "@shared/utils/domains";
@@ -8,8 +8,6 @@ import { parseEmail } from "@shared/utils/email";
 import accountProvisioner from "@server/commands/accountProvisioner";
 import { AuthenticationError } from "@server/errors";
 import passportMiddleware from "@server/middlewares/passport";
-import type { User } from "@server/models";
-import type { AuthenticationResult } from "@server/types";
 import {
   getTeamFromContext,
   getClientFromOAuthState,
@@ -39,10 +37,11 @@ function samlGroups(profile: Record<string, unknown>) {
 }
 
 if (env.SAML_SSO_ENDPOINT && env.SAML_CERT) {
+  const entryPoint = env.SAML_SSO_ENDPOINT;
   const strategy = new SamlStrategy(
     {
       callbackUrl: `${env.URL}/auth/saml.callback`,
-      entryPoint: env.SAML_SSO_ENDPOINT,
+      entryPoint,
       issuer: env.URL,
       idpCert: env.SAML_CERT.replace(/\\n/g, "\n"),
       identifierFormat:
@@ -50,15 +49,7 @@ if (env.SAML_SSO_ENDPOINT && env.SAML_CERT) {
       wantAssertionsSigned: true,
       passReqToCallback: true,
     },
-    async function (
-      req: Request,
-      profile: Record<string, unknown> | null | undefined,
-      done: (
-        err: Error | null,
-        user: User | null,
-        result?: AuthenticationResult
-      ) => void
-    ) {
+    async function (req, profile, done) {
       try {
         if (!profile) {
           throw AuthenticationError(
@@ -86,7 +77,8 @@ if (env.SAML_SSO_ENDPOINT && env.SAML_CERT) {
           );
         }
 
-        const context = req.ctx;
+        // koa-passport supplies a Koa request proxy; passport-saml types it as Express.
+        const context = (req as unknown as Request).ctx;
         const team = await getTeamFromContext(context);
         const client = getClientFromOAuthState(context);
         const existingUser =
@@ -114,7 +106,7 @@ if (env.SAML_SSO_ENDPOINT && env.SAML_CERT) {
             },
             authenticationProvider: {
               name: "saml",
-              providerId: env.SAML_SSO_ENDPOINT,
+              providerId: entryPoint,
             },
             authentication: {
               providerId: email,
@@ -124,17 +116,23 @@ if (env.SAML_SSO_ENDPOINT && env.SAML_CERT) {
           }
         );
 
-        return done(null, result.user, { ...result, client, team });
+        // Passport forwards the model instance unchanged to the app callback.
+        return done(null, result.user as unknown as Record<string, unknown>, {
+          ...result,
+          client,
+          team: team ?? result.team,
+        });
       } catch (err) {
-        return done(err as Error, null);
+        return done(err instanceof Error ? err : new Error(String(err)));
       }
     },
-    function (_req: Request, _profile, done) {
+    function (_req, _profile, done) {
       done(null);
     }
   );
 
-  passport.use("saml", strategy);
+  // The runtime adapter supports Express strategies through its request proxy.
+  passport.use("saml", strategy as unknown as passport.Strategy);
 
   router.get("saml", passport.authenticate("saml"));
   router.post("saml.callback", passportMiddleware("saml"));

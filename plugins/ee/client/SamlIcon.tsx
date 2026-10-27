@@ -3,10 +3,7 @@ type Props = {
   color?: string;
 };
 
-export default function SamlIcon({
-  size = 24,
-  color = "currentColor",
-}: Props) {
+export default function SamlIcon({ size = 24, color = "currentColor" }: Props) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path

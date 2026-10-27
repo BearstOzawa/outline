@@ -1,4 +1,4 @@
-import Router from "koa-router";
+import Router from "@koa/router";
 import { Op } from "sequelize";
 import { TeamPreference } from "@shared/types";
 import documentLoader from "@server/commands/documentLoader";

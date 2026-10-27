@@ -33,6 +33,7 @@ allow(User, "createTeam", Team, (actor, team) =>
   and(
     //
     isCloudHosted(),
+    isTeamModel(actor, team),
     !actor.isGuest,
     !actor.isViewer,
     or(actor.isAdmin, !!team?.memberTeamCreate)
@@ -50,6 +51,13 @@ allow(User, "delete", Team, (actor, team) =>
 );
 
 allow(User, "audit", Team, (actor, team) =>
+  and(
+    //
+    isTeamAdmin(actor, team)
+  )
+);
+
+allow(User, "externalGroupSync", Team, (actor, team) =>
   and(
     //
     isTeamAdmin(actor, team)

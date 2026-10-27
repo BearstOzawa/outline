@@ -1,5 +1,5 @@
 import { isArray, sortBy } from "es-toolkit/compat";
-import { action, observable } from "mobx";
+import { action, makeObservable, observable, runInAction } from "mobx";
 import type { IObservableArray } from "mobx";
 import type Document from "~/models/Document";
 import type Team from "~/models/Team";
@@ -150,7 +150,9 @@ export class PluginManager {
 
     const r = import.meta.glob("../../plugins/*/client/index.{ts,js,tsx,jsx}");
     await Promise.all(Object.keys(r).map((key: string) => r[key]()));
-    this.loaded = true;
+    runInAction(() => {
+      this.loaded = true;
+    });
   }
 
   /**
@@ -168,6 +170,8 @@ export class PluginManager {
   @observable
   private static loaded = false;
 }
+
+makeObservable(PluginManager);
 
 /**
  * Convenience hook to get the value for a specific plugin and type.

@@ -2,6 +2,22 @@ export const AttachmentValidation = {
   /** The limited allowable mime-types for user and team avatars */
   avatarContentTypes: ["image/jpg", "image/jpeg", "image/png"],
 
+  /**
+   * The mime-types and file extensions offered by the avatar file picker. HEIC
+   * and HEIF images are converted to a type in `avatarContentTypes` by the
+   * client before they are uploaded. Extensions are included because some
+   * platforms report an empty mime-type for these files.
+   */
+  avatarInputContentTypes: [
+    "image/jpg",
+    "image/jpeg",
+    "image/png",
+    "image/heic",
+    "image/heif",
+    ".heic",
+    ".heif",
+  ],
+
   /** The most widely supported mime-types across modern browsers */
   emojiContentTypes: [
     "image/png",
@@ -49,7 +65,12 @@ export const CollectionValidation = {
 
 export const CommentValidation = {
   /** The maximum length of a comment */
-  maxLength: 1000,
+  maxLength: 10_000,
+};
+
+export const DeprecationValidation = {
+  /** The maximum length of an archive or deletion reason. */
+  maxReasonLength: 2000,
 };
 
 export const DocumentValidation = {
@@ -99,6 +120,15 @@ export const OAuthClientValidation = {
 
   /** The maximum length of an OAuth client redirect URI */
   maxRedirectUriLength: 1024,
+
+  /** The maximum length of an OAuth client ID, which can be a metadata document URL */
+  maxClientIdLength: 1024,
+
+  /** The prefix of client IDs that are the URL of a client ID metadata document */
+  metadataDocumentClientIdPrefix: "https://",
+
+  /** The maximum number of redirect URIs for an OAuth client */
+  maxRedirectUris: 20,
 
   /** The allowed OAuth client types */
   clientTypes: ["confidential", "public"] as const,

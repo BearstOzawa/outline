@@ -1,7 +1,7 @@
 export function eventLabel(name: string, t: (key: string) => string) {
   const label = t(name);
   if (label === name) {
-    return name.replaceAll(".", " ").replaceAll("_", " ");
+    return name.replace(/[._]/g, " ");
   }
   return label;
 }

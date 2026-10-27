@@ -10,10 +10,12 @@ export function ImportSlabDialog() {
   return (
     <>
       <Text as="p">
-        <Trans
-          defaults="Import a zip file of Markdown documents exported from Slab – collections, posts, and images will be imported. In Slab, open the admin settings and use the <1>Export</1> option to download an archive of your content."
-          components={{ 1: <em /> }}
-        />
+        <Trans>
+          Import a zip file of Markdown documents exported from Slab –
+          collections, posts, images, and attachments will be imported. In Slab,
+          open the admin settings and use the <em>Export</em> option to download
+          an archive of your content.
+        </Trans>
       </Text>
       <DropToImport
         onSubmit={dialogs.closeAllModals}

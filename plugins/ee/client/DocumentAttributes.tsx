@@ -121,9 +121,9 @@ function DocumentAttributes({ document }: { document: Document }) {
               />
             ) : (
               <Input
-                value={values[attribute.id ?? ""] ?? ""}
+                value={String(values[attribute.id ?? ""] ?? "")}
                 disabled={!can.update}
-                type={attribute.type === "number" ? "number" : "text"}
+                inputMode={attribute.type === "number" ? "decimal" : "text"}
                 onChange={(ev) =>
                   setValues({
                     ...values,

@@ -212,4 +212,79 @@ describe("policies/user", () => {
       expect(abilities.readEmail).toBeFalsy();
     });
   });
+
+  describe("readEmail on team", () => {
+    it("should allow members when emailDisplay is 'members'", async () => {
+      const team = await buildTeam();
+      const user = await buildUser({ teamId: team.id });
+
+      const abilities = serialize(user, team);
+      expect(abilities.readEmail).toBeTruthy();
+    });
+
+    it("should NOT allow viewers when emailDisplay is 'members'", async () => {
+      const team = await buildTeam();
+      const viewer = await buildViewer({ teamId: team.id });
+
+      const abilities = serialize(viewer, team);
+      expect(abilities.readEmail).toBeFalsy();
+    });
+
+    it("should NOT allow members when emailDisplay is 'none'", async () => {
+      const team = await buildTeam();
+      team.setPreference(TeamPreference.EmailDisplay, EmailDisplay.None);
+      await team.save();
+      const user = await buildUser({ teamId: team.id });
+
+      const abilities = serialize(user, team);
+      expect(abilities.readEmail).toBeFalsy();
+    });
+
+    it("should allow admins when emailDisplay is 'none'", async () => {
+      const team = await buildTeam();
+      team.setPreference(TeamPreference.EmailDisplay, EmailDisplay.None);
+      await team.save();
+      const admin = await buildAdmin({ teamId: team.id });
+
+      const abilities = serialize(admin, team);
+      expect(abilities.readEmail).toBeTruthy();
+    });
+
+    it("should allow viewers when emailDisplay is 'everyone'", async () => {
+      const team = await buildTeam();
+      team.setPreference(TeamPreference.EmailDisplay, EmailDisplay.Everyone);
+      await team.save();
+      const viewer = await buildViewer({ teamId: team.id });
+
+      const abilities = serialize(viewer, team);
+      expect(abilities.readEmail).toBeTruthy();
+    });
+
+    it("should NOT allow users from a different team", async () => {
+      const team = await buildTeam();
+      const user = await buildUser();
+
+      const abilities = serialize(user, team);
+      expect(abilities.readEmail).toBeFalsy();
+    });
+  });
+});
+
+describe("self-hosted guest invitations", () => {
+  it("requires workspace invitation permission and denies cross-team access", async () => {
+    const team = await buildTeam();
+    const admin = await buildAdmin({ teamId: team.id });
+    const viewer = await buildViewer({ teamId: team.id });
+    const guest = await buildUser({ teamId: team.id, role: UserRole.Guest });
+    const member = await buildUser({ teamId: team.id });
+    const outsider = await buildAdmin();
+    expect(serialize(admin, team).addGuest).toBe(true);
+    expect(serialize(viewer, team).addGuest).toBe(false);
+    expect(serialize(guest, team).addGuest).toBe(false);
+    expect(serialize(outsider, team).addGuest).toBe(false);
+    team.setPreference(TeamPreference.MembersCanInvite, false);
+    expect(serialize(member, team).addGuest).toBe(false);
+    team.setPreference(TeamPreference.MembersCanInvite, true);
+    expect(serialize(member, team).addGuest).toBe(true);
+  });
 });

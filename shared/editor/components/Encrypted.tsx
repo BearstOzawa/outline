@@ -34,6 +34,9 @@ export default function Encrypted(props: ComponentProps) {
 
   const updateAttrs = (attrs: Record<string, string | number>) => {
     const pos = getPos();
+    if (pos === undefined || view.isDestroyed) {
+      return;
+    }
     const transaction = view.state.tr
       .setNodeMarkup(pos, undefined, {
         ...node.attrs,
@@ -94,7 +97,8 @@ export default function Encrypted(props: ComponentProps) {
           ciphertext: String(node.attrs.ciphertext || ""),
           iv: String(node.attrs.iv || ""),
           salt: String(node.attrs.salt || ""),
-          iterations: Number(node.attrs.iterations) || ENCRYPTED_BLOCK_ITERATIONS,
+          iterations:
+            Number(node.attrs.iterations) || ENCRYPTED_BLOCK_ITERATIONS,
         },
         password
       );
@@ -146,11 +150,7 @@ export default function Encrypted(props: ComponentProps) {
   };
 
   return (
-    <Wrap
-      contentEditable={false}
-      onMouseDown={stop}
-      onKeyDown={stop}
-    >
+    <Wrap contentEditable={false} onMouseDown={stop} onKeyDown={stop}>
       <Header>
         <PadlockIcon size={18} />
         <Title>
@@ -187,7 +187,11 @@ export default function Encrypted(props: ComponentProps) {
             cols={1}
           />
           <Actions>
-            <Button type="button" onClick={() => void handleEncrypt()} disabled={busy}>
+            <Button
+              type="button"
+              onClick={() => void handleEncrypt()}
+              disabled={busy}
+            >
               {t("Encrypt")}
             </Button>
           </Actions>
@@ -210,7 +214,11 @@ export default function Encrypted(props: ComponentProps) {
             }}
           />
           <Actions>
-            <Button type="button" onClick={() => void handleUnlock()} disabled={busy}>
+            <Button
+              type="button"
+              onClick={() => void handleUnlock()}
+              disabled={busy}
+            >
               {t("Unlock")}
             </Button>
           </Actions>
@@ -240,7 +248,11 @@ export default function Encrypted(props: ComponentProps) {
                 autoComplete="off"
               />
               <Actions>
-                <Button type="button" onClick={() => void handleRelock()} disabled={busy}>
+                <Button
+                  type="button"
+                  onClick={() => void handleRelock()}
+                  disabled={busy}
+                >
                   {t("Lock")}
                 </Button>
                 <Ghost type="button" onClick={handleLockView}>

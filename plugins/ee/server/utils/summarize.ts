@@ -106,10 +106,7 @@ export async function generateDocumentSummary(
   }
 }
 
-export async function saveDocumentSummary(
-  document: Document,
-  summary: string
-) {
+export async function saveDocumentSummary(document: Document, summary: string) {
   document.summary = summary;
   document.summaryGeneratedAt = new Date();
   await document.save({ silent: true });
@@ -119,9 +116,7 @@ export const SUMMARY_SYSTEM_PROMPT =
   "You write a short document summary for a knowledge base. Reply in the same language as the document. Use 1-3 sentences depending on how much content there is, no title, no markdown, no preamble. If the document is very short, restate its point in one sentence.";
 
 export function documentSummarySource(document: Document) {
-  const body = DocumentHelper.toPlainText(document)
-    .replace(/\s+/g, " ")
-    .trim();
+  const body = DocumentHelper.toPlainText(document).replace(/\s+/g, " ").trim();
   const title = (document.title || "").trim();
   if (!body && !title) {
     return null;
